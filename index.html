@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojistik Finansal Yönetim Paneli - CFO View</title>
+    
+    <!-- === KÜTÜPHANELER === -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/recharts@2.12.0/umd/Recharts.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .tab-content { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .custom-tooltip-card { background: rgba(255, 255, 255, 0.98); border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 12px; min-width: 240px; z-index: 50; }
+        .tooltip-header { font-weight: 700; color: #1e293b; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; display: flex; justify-content: space-between; }
+        .tooltip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.85rem; }
+        .tooltip-label { color: #64748b; }
+        .tooltip-value { font-weight: 600; color: #334155; }
+        .tooltip-trend { font-size: 0.75rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+        .trend-up { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .trend-down { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .tag-real { background: #dbeafe; color: #1e40af; font-size: 0.65rem; padding: 1px 6px; border-radius: 99px; }
+        .tag-forecast { background: #f3f4f6; color: #4b5563; border: 1px dashed #9ca3af; font-size: 0.65rem; padding: 1px 6px; border-radius: 99px; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .recharts-text.recharts-pie-label-text { font-size: 9px; font-weight: 600; fill: #4b5563; }
+        .clickable-row { cursor: pointer; transition: background-color 0.2s; }
+        .clickable-row:hover { background-color: #f1f5f9; }
+        .detail-row { background-color: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body class="text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, useRef } = React;
+        const getRecharts = () => window.Recharts || null;
+
+        // --- ICONS ---
+        const Icons = {
+            Upload: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+            TrendingUp: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+            TrendingDown: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+            AlertTriangle: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            Filter: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+            Download: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            Search: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>,
+            ChevronDown: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+            ChevronUp: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>,
+            Activity: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            Printer: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+            Settings: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+            Trash: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+            Scale: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>,
+            BarChart2: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        };
+
+        const DISPLAY_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        const MONTH_SEARCH_KEYS = [['oca','jan'],['sub','feb'],['mar'],['nis','apr'],['may'],['haz','jun'],['tem','jul'],['agu','aug'],['eyl','sep'],['eki','oct'],['kas','nov'],['ara','dec']];
+        const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#FF6B6B', '#4ECDC4'];
+        
+        // Lojistik Sektörü Mevsimsellik Çarpanları (Kasım-Aralık Peak)
+        const SEASONALITY_FACTORS = {
+            'Oca': 0.9, 'Şub': 0.9, 'Mar': 1.0, 'Nis': 1.0, 'May': 1.05, 'Haz': 1.05,
+            'Tem': 1.1, 'Ağu': 1.0, 'Eyl': 1.1, 'Eki': 1.15, 'Kas': 1.3, 'Ara': 1.4
+        };
+
+        const THEME = { bg: 'bg-slate-50', card: 'bg-white shadow-sm border border-slate-200 rounded-xl' };
+
+        function App() {
+            const [isRechartsReady, setIsRechartsReady] = useState(false);
+            const [data, setData] = useState([]);
+            const [budgetData, setBudgetData] = useState([]);
+            const [fileName, setFileName] = useState(null);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [filterMasrafYeri, setFilterMasrafYeri] = useState('');
+            const [filterMizan, setFilterMizan] = useState('');
+            const [selectedMonth, setSelectedMonth] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [expandedRows, setExpandedRows] = useState({});
+            
+            // --- YENİ EKLENEN STATE'LER ---
+            const [auditThreshold, setAuditThreshold] = useState(5000);
+            const [auditPercent, setAuditPercent] = useState(50);
+            const [showDataModal, setShowDataModal] = useState(false);
+            const [expandedTopExpense, setExpandedTopExpense] = useState(null); 
+            const [expandedTopMizan, setExpandedTopMizan] = useState(null);
+            
+            const [operationalVolume, setOperationalVolume] = useState(10000); // Varsayılan Hacim (Simülasyon)
+            const [isSeasonal, setIsSeasonal] = useState(false); // Mevsimsellik Toggle
+
+            const dashboardRef = useRef(null);
+
+            useEffect(() => {
+                const checkInterval = setInterval(() => { if (window.Recharts) { setIsRechartsReady(true); clearInterval(checkInterval); } }, 500);
+                return () => clearInterval(checkInterval);
+            }, []);
+
+            const normalizeString = (str) => {
+                if (!str) return '';
+                return str.toLocaleLowerCase('tr-TR')
+                    .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+                    .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+            const parseNumber = (val) => { 
+                if (!val) return 0; 
+                let str = String(val).replace(/\s/g, '').replace(/\u00A0/g, ''); 
+                if (str === '-' || str === '') return 0; 
+                var clean = str; 
+                if (clean.includes('-')) clean = clean.replace(/-/g, ''); 
+                clean = clean.replace(/\./g, '').replace(',', '.'); 
+                let result = parseFloat(clean); 
+                return str.includes('-') ? -result : (isNaN(result) ? 0 : result); 
+            };
+
+            const parseCSV = (text, type) => {
+                setLoading(true);
+                setTimeout(() => {
+                    try {
+                        if (!text) throw new Error("Dosya boş.");
+                        let cleanText = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+                        const lines = cleanText.split(/\r?\n/);
+                        if (lines.length < 2) throw new Error("Yetersiz veri.");
+                        const delimiter = lines[0].includes(';') ? ';' : ',';
+                        const headers = lines[0].split(delimiter).map(h => h.trim());
+                        const normalizedHeaders = headers.map(h => normalizeString(h));
+                        const monthIndices = new Array(12).fill(-1);
+                        
+                        MONTH_SEARCH_KEYS.forEach((keys, idx) => { 
+                            const f = normalizedHeaders.findIndex(h => keys.some(k => h.includes(k))); 
+                            if (f !== -1) monthIndices[idx] = f; 
+                        });
+                        
+                        const parsedData = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const cols = lines[i].split(delimiter);
+                            if (cols.length < 2) continue;
+                            
+                            const getVal = (keys) => { 
+                                let idx = normalizedHeaders.findIndex(h => keys.includes(h));
+                                if (idx === -1) idx = normalizedHeaders.findIndex(h => keys.some(k => h.startsWith(k)));
+                                if (idx === -1) idx = normalizedHeaders.findIndex(h => keys.some(k => h.includes(k)));
+                                return idx !== -1 ? (cols[idx] || '') : ''; 
+                            };
+                            
+                            const mizanAdi = getVal(['mizanadi', 'mizanad']);
+                            if (!mizanAdi && type === 'actual') continue; 
+
+                            const monthlyData = {};
+                            let total = 0;
+                            monthIndices.forEach((cIdx, mIdx) => { 
+                                const val = (cIdx !== -1 && cIdx < cols.length) ? parseNumber(cols[cIdx]) : 0; 
+                                monthlyData[DISPLAY_MONTHS[mIdx]] = val; 
+                                total += val; 
+                            });
+                            
+                            const masrafYeriKodu = getVal(['masrafyerikodu', 'masrafyerikod']);
+                            const masrafYeriAdi = getVal(['masrafyeradi', 'masrafyerad']); 
+                            const mizanKodu = getVal(['mizankodu']); 
+                            
+                            parsedData.push({
+                                id: i,
+                                direktorluk: getVal(['direktorluk']).replace(/"/g, '').trim() || 'Diğer',
+                                masrafYeriKodu: masrafYeriKodu.replace(/"/g, '').trim(),
+                                masrafYeriAdi: masrafYeriAdi.replace(/"/g, '').trim(),
+                                masrafYeriTam: (masrafYeriKodu ? `[${masrafYeriKodu}] ` : '') + masrafYeriAdi,
+                                mizanKodu: mizanKodu.replace(/"/g, '').trim(),
+                                mizanAdi: mizanAdi.replace(/"/g, '').trim(),
+                                mizanTam: (mizanKodu ? `[${mizanKodu}] ` : '') + mizanAdi,
+                                butceSorumlusu: getVal(['butcesor']).replace(/"/g, '').trim(),
+                                toplam2025: total,
+                                monthlyData,
+                            });
+                        }
+                        if (type === 'actual') setData(parsedData);
+                        else setBudgetData(parsedData);
+                        setShowDataModal(false);
+                    } catch (e) { alert(e.message); } finally { setLoading(false); }
+                }, 200);
+            };
+
+            const handleFileUpload = (e, type) => { const f = e.target.files?.[0]; if (f) { if(type==='actual') setFileName(f.name); setLoading(true); const r = new FileReader(); r.onload = (ev) => parseCSV(ev.target.result, type); r.readAsText(f, 'ISO-8859-9'); } };
+
+            const uniqueMasrafYerleri = useMemo(() => [...new Set([...data, ...budgetData].map(r => r.masrafYeriTam).filter(Boolean))].sort(), [data, budgetData]);
+            const uniqueMizanlar = useMemo(() => [...new Set([...data, ...budgetData].map(r => r.mizanTam).filter(Boolean))].sort(), [data, budgetData]);
+            
+            const filteredData = useMemo(() => data.filter(r => (filterMasrafYeri ? r.masrafYeriTam === filterMasrafYeri : true) && (filterMizan ? r.mizanTam === filterMizan : true)), [data, filterMasrafYeri, filterMizan]);
+            const filteredBudget = useMemo(() => budgetData.filter(r => (filterMasrafYeri ? r.masrafYeriTam === filterMasrafYeri : true) && (filterMizan ? r.mizanTam === filterMizan : true)), [budgetData, filterMasrafYeri, filterMizan]);
+
+            const chartData = useMemo(() => {
+                const monthTotals = DISPLAY_MONTHS.map(m => filteredData.reduce((acc, c) => acc + (c.monthlyData[m] || 0), 0));
+                const budgetTotals = DISPLAY_MONTHS.map(m => filteredBudget.reduce((acc, c) => acc + (c.monthlyData[m] || 0), 0));
+                
+                let lastRealIndex = -1;
+                for (let i = monthTotals.length - 1; i >= 0; i--) { if (monthTotals[i] !== 0) { lastRealIndex = i; break; } }
+                const realMonthsCount = lastRealIndex + 1;
+                const totalRealValue = monthTotals.slice(0, realMonthsCount).reduce((a,b)=>a+b, 0);
+                const averageMonthly = realMonthsCount > 0 ? totalRealValue / realMonthsCount : 0;
+
+                // --- TAHMİN MANTIĞI GÜNCELLEMESİ (MEVSİMSELLİK) ---
+                return {
+                    monthlyTrend: DISPLAY_MONTHS.map((m, idx) => {
+                        const isForecast = idx > lastRealIndex;
+                        let actualVal = isForecast ? averageMonthly : monthTotals[idx];
+                        
+                        // Mevsimsellik Açıksa Tahmini Çarpanla Düzelt
+                        if (isForecast && isSeasonal) {
+                            actualVal = actualVal * (SEASONALITY_FACTORS[m] || 1);
+                        }
+
+                        const budgetVal = budgetTotals[idx];
+                        
+                        let prevVal = null;
+                        let changePercent = 0;
+                        let direction = 'neutral';
+                        
+                        if (idx > 0 && !isForecast) {
+                            const prevMonthTotal = monthTotals[idx - 1];
+                            prevVal = prevMonthTotal;
+                            if (prevVal !== 0) {
+                                const diff = actualVal - prevVal;
+                                changePercent = (diff / Math.abs(prevVal)) * 100;
+                                direction = diff >= 0 ? 'up' : 'down';
+                            } else if (actualVal !== 0) { direction = 'up'; changePercent = 100; }
+                        }
+                        
+                        return { 
+                            name: m, 
+                            index: idx, 
+                            actual: actualVal, 
+                            value: actualVal, 
+                            budget: budgetVal, 
+                            isForecast, 
+                            prevValue: isForecast ? null : prevVal, 
+                            changePercent: isForecast ? 0 : Math.abs(changePercent).toFixed(1), 
+                            direction, 
+                            diff: budgetVal !== 0 ? ((actualVal - budgetVal) / Math.abs(budgetVal)) * 100 : 0 
+                        };
+                    }),
+                    pieData: Object.entries(data.reduce((acc, c) => { acc[c.direktorluk] = (acc[c.direktorluk] || 0) + c.toplam2025; return acc; }, {})).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value),
+                    yearEndForecast: totalRealValue + (averageMonthly * (11 - lastRealIndex)) // Basit forecast, mevsimselliği buraya yansıtmadık şimdilik
+                };
+            }, [filteredData, filteredBudget, data, isSeasonal]);
+
+            const kpiSummary = useMemo(() => {
+                const totalActual = filteredData.reduce((acc, c) => acc + c.toplam2025, 0);
+                const totalBudget = filteredBudget.reduce((acc, c) => acc + c.toplam2025, 0);
+                
+                // Yıl Sonu Tahmini (Mevsimsellik Varsa Toplam Değişir)
+                const yearEnd = chartData.monthlyTrend.reduce((acc, c) => acc + c.actual, 0);
+
+                const deviation = totalActual - totalBudget;
+                const devPercent = totalBudget !== 0 ? (deviation / Math.abs(totalBudget)) * 100 : 0;
+                
+                return { totalActual, totalBudget, yearEnd, deviation, devPercent };
+            }, [filteredData, filteredBudget, chartData]);
+
+            // --- UNIT COST KPI (BİRİM MALİYET) ---
+            const unitCost = useMemo(() => {
+                // Seçilen ay varsa o ayın tutarını, yoksa toplam tutarı kullan
+                const cost = selectedMonth 
+                    ? chartData.monthlyTrend.find(m => m.name === selectedMonth)?.value || 0
+                    : kpiSummary.totalActual;
+                
+                // Hacim aylık mı yıllık mı? Basitlik için hacmi "Aylık Ortalama" gibi düşünüp seçilen dönemle ölçekleyelim
+                // Veya kullanıcıdan direkt o dönemin hacmini girmesini bekleyelim.
+                // Şimdilik: Girdi -> Aylık Hacim. Yıllık bakıyorsak * 12 (veya gerçekleşen ay sayısı)
+                
+                let volume = operationalVolume;
+                if (!selectedMonth) {
+                    // Yıllık görünümdeyiz, hacmi gerçekleşen ay sayısıyla çarpalım (yaklaşık)
+                    const realizedMonths = chartData.monthlyTrend.filter(m => !m.isForecast).length || 1;
+                    volume = operationalVolume * realizedMonths;
+                }
+
+                return volume > 0 ? cost / volume : 0;
+            }, [kpiSummary.totalActual, chartData, selectedMonth, operationalVolume]);
+
+
+            // --- BUDGET BREAKERS (SAPMA ANALİZİ) ---
+            const topBudgetBreakers = useMemo(() => {
+                if (filteredBudget.length === 0) return [];
+                
+                // Mizan bazında bütçe ve fiiliyi topla
+                const comparison = {};
+                
+                filteredData.forEach(r => {
+                    const key = r.mizanAdi;
+                    if(!comparison[key]) comparison[key] = { actual: 0, budget: 0 };
+                    comparison[key].actual += selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025;
+                });
+
+                filteredBudget.forEach(r => {
+                    const key = r.mizanAdi;
+                    if(!comparison[key]) comparison[key] = { actual: 0, budget: 0 };
+                    comparison[key].budget += selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025;
+                });
+
+                return Object.entries(comparison)
+                    .map(([name, val]) => ({
+                        name,
+                        actual: val.actual,
+                        budget: val.budget,
+                        diff: val.actual - val.budget,
+                        diffPercent: val.budget !== 0 ? ((val.actual - val.budget) / Math.abs(val.budget)) * 100 : 0
+                    }))
+                    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)) // Mutlak sapmaya göre sırala
+                    .slice(0, 5);
+
+            }, [filteredData, filteredBudget, selectedMonth]);
+
+
+            const exportPDF = async () => {
+                const element = dashboardRef.current;
+                if (!element) return;
+                const buttons = element.querySelectorAll('button, input, select');
+                buttons.forEach(b => b.style.visibility = 'hidden');
+                const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+                buttons.forEach(b => b.style.visibility = 'visible');
+                const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
+                const imgWidth = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save(`Finansal_Rapor_${new Date().toISOString().slice(0,10)}.pdf`);
+            };
+
+            const toggleRow = (id) => setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+
+            const tableDisplayData = useMemo(() => {
+                let d = [...filteredData];
+                if (searchTerm) { const term = searchTerm.toLocaleLowerCase('tr-TR'); d = d.filter(r => (r.masrafYeriTam+r.mizanTam+r.butceSorumlusu).toLocaleLowerCase('tr-TR').includes(term)); }
+                if (selectedMonth) d.sort((a,b) => (b.monthlyData[selectedMonth]||0) - (a.monthlyData[selectedMonth]||0)); else d.sort((a,b) => b.toplam2025 - a.toplam2025);
+                return d;
+            }, [filteredData, selectedMonth, searchTerm]);
+
+            const getBreakdown = (targetKey, matchKey, matchValue) => {
+                const relevantData = filteredData.filter(r => r[matchKey] === matchValue);
+                const grouped = relevantData.reduce((acc, r) => {
+                    const key = r[targetKey];
+                    const val = selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025;
+                    acc[key] = (acc[key] || 0) + val;
+                    return acc;
+                }, {});
+
+                return Object.entries(grouped).map(([name, value]) => ({ name, value })).filter(item => item.value !== 0).sort((a, b) => b.value - a.value).slice(0, 5); 
+            };
+
+            const top5Expenses = useMemo(() => {
+                const grouped = filteredData.reduce((acc, r) => { const key = r.masrafYeriAdi || r.masrafYeri; const val = selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; acc[key] = (acc[key] || 0) + val; return acc; }, {});
+                return Object.entries(grouped).map(([name, value]) => ({ name, value })).filter(x => x.value !== 0).sort((a, b) => b.value - a.value).slice(0, 5);
+            }, [filteredData, selectedMonth]);
+
+            const top5Mizan = useMemo(() => {
+                const grouped = filteredData.reduce((acc, r) => { const keyName = r.mizanAdi || 'Bilinmeyen Mizan'; const keyCode = r.mizanKodu || ''; const key = JSON.stringify({ name: keyName, code: keyCode }); const val = selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; acc[key] = (acc[key] || 0) + val; return acc; }, {});
+                return Object.entries(grouped).map(([keyStr, value]) => { const { name, code } = JSON.parse(keyStr); return { name, code, value }; }).filter(x => x.value !== 0).sort((a, b) => b.value - a.value).slice(0, 5);
+            }, [filteredData, selectedMonth]);
+
+            const groupedAnomalyData = useMemo(() => {
+                if (data.length === 0) return [];
+                const groups = {}; 
+                const NOISE_THRESHOLD = auditThreshold; 
+                const PERCENTAGE_THRESHOLD = auditPercent / 100;
+
+                data.forEach(row => {
+                    const rowAnomalies = [];
+                    const months = DISPLAY_MONTHS;
+                    for (let i = 1; i < months.length; i++) {
+                        const currentMonthName = months[i];
+                        const currentVal = row.monthlyData[currentMonthName];
+                        if (currentVal === 0) continue; 
+                        let sumHistory = 0; let countHistory = 0;
+                        for (let j = 0; j < i; j++) { sumHistory += row.monthlyData[months[j]]; countHistory++; }
+                        const averageHistory = countHistory > 0 ? (sumHistory / countHistory) : 0;
+                        const prevVal = row.monthlyData[months[i-1]];
+                        const isSignFlip = (prevVal > 0 && currentVal < 0) || (prevVal < 0 && currentVal > 0);
+                        const isCorrection = Math.abs(prevVal + currentVal) < 1; 
+
+                        if (isSignFlip && !isCorrection && Math.abs(currentVal - prevVal) > NOISE_THRESHOLD) {
+                             rowAnomalies.push({ type: 'SIGN_FLIP', severity: 'high', desc: `İşaret Değişimi: ${months[i-1]} (${prevVal.toLocaleString()} ₺) -> ${currentMonthName} (${currentVal.toLocaleString()} ₺)`, month: currentMonthName, val: currentVal });
+                             continue;
+                        }
+                        if (Math.abs(averageHistory) < 100) {
+                            if (Math.abs(currentVal) > (NOISE_THRESHOLD * 5)) { rowAnomalies.push({ type: 'SPIKE', severity: 'medium', desc: `Ani Yük (Geçmiş Ort: 0) -> ${currentMonthName}: ${currentVal.toLocaleString()} ₺`, month: currentMonthName, val: currentVal }); }
+                        } else {
+                            const deviation = Math.abs(currentVal - averageHistory);
+                            const percentChange = deviation / Math.abs(averageHistory);
+                            if (percentChange > PERCENTAGE_THRESHOLD && deviation > NOISE_THRESHOLD) {
+                                const direction = currentVal > averageHistory ? 'Artış' : 'Azalış';
+                                rowAnomalies.push({ type: 'DEVIATION', severity: 'medium', desc: `Ortalamadan Sapma (%${(percentChange*100).toFixed(0)} ${direction}): Ort. ${averageHistory.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺ -> Güncel ${currentVal.toLocaleString('tr-TR')} ₺`, month: currentMonthName, val: currentVal });
+                            }
+                        }
+                    }
+                    if (rowAnomalies.length > 0) { groups[row.id] = { id: row.id, direktorluk: row.direktorluk, masrafYeriKodu: row.masrafYeriKodu, masrafYeriAdi: row.masrafYeriAdi, mizanKodu: row.mizanKodu, mizanAdi: row.mizanAdi, anomalies: rowAnomalies }; }
+                });
+                return Object.values(groups);
+            }, [data, auditThreshold, auditPercent]);
+
+            const topMonth = useMemo(() => {
+                if (!chartData.monthlyTrend.length) return { name: '-', value: 0 };
+                const realMonths = chartData.monthlyTrend.filter(x => !x.isForecast);
+                if (realMonths.length === 0) return { name: '-', value: 0 };
+                return [...realMonths].sort((a,b) => b.value - a.value)[0];
+            }, [chartData]);
+
+            const formatMoney = (val) => {
+                if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+                if (val >= 1000) return `${(val / 1000).toFixed(1)}K`;
+                return val.toLocaleString('tr-TR');
+            };
+
+            // --- RENDER ---
+            if (!isRechartsReady) return <div className="flex h-screen items-center justify-center"><div className="loader"></div></div>;
+            const { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } = window.Recharts;
+
+            const CustomTooltip = ({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                    const d = payload[0].payload;
+                    const diffVal = (d.actual || 0) - (d.budget || 0); 
+                    const displayActual = d.actual != null ? d.actual : 0;
+                    const displayBudget = d.budget != null ? d.budget : 0;
+                    const displayPrev = d.prevValue != null ? d.prevValue : 0;
+
+                    return (
+                        <div className="custom-tooltip-card">
+                            <div className="tooltip-header"><span>{label}</span>{d.isForecast ? <span className="tooltip-tag tag-forecast">TAHMİN</span> : <span className="tooltip-tag tag-real">FİİLİ</span>}</div>
+                            <div className="tooltip-row"><span className="tooltip-label">Fiili:</span><span className="tooltip-value" style={{color: '#3b82f6'}}>{displayActual.toLocaleString('tr-TR')} ₺</span></div>
+                            <div className="tooltip-row"><span className="tooltip-label">Bütçe:</span><span className="tooltip-value" style={{color: '#8b5cf6'}}>{displayBudget.toLocaleString('tr-TR')} ₺</span></div>
+                            {!d.isForecast && d.budget !== 0 && (<div className="tooltip-row border-t pt-2 mt-2"><span className="tooltip-label">Sapma:</span><span className={`tooltip-value ${diffVal > 0 ? 'text-pos' : 'text-neg'}`}>{diffVal > 0 ? '+' : ''}{diffVal.toLocaleString('tr-TR')} ₺ <span className="text-xs ml-1">({d.diff > 0 ? '+' : ''}{d.diff ? d.diff.toFixed(1) : 0}%)</span></span></div>)}
+                            {!d.isForecast && d.prevValue !== null && (<div className="tooltip-row"><span className="tooltip-label">Önceki Ay:</span><span className="tooltip-value">{displayPrev.toLocaleString('tr-TR')} ₺</span></div>)}
+                            {!d.isForecast && d.direction !== 'neutral' && d.prevValue !== null && (<div className={`tooltip-trend ${d.direction === 'up' ? 'trend-up' : 'trend-down'}`}>{d.direction === 'up' ? '▲' : '▼'} %{d.changePercent} {d.direction === 'up' ? 'Artış' : 'Azalış'}</div>)}
+                        </div>
+                    );
+                }
+                return null;
+            };
+
+            // Initial Upload Screen
+            if (data.length === 0) return (
+                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
+                    <div className="bg-white p-10 rounded-2xl shadow-xl border border-slate-200 text-center max-w-2xl w-full">
+                        <div className="flex justify-center mb-6"><div className="bg-blue-100 p-4 rounded-full"><Icons.Upload size={48} className="text-blue-600"/></div></div>
+                        <h1 className="text-2xl font-bold text-slate-800 mb-2">Finansal Veri Yükleme</h1>
+                        <p className="text-slate-500 mb-8">Lütfen analiz etmek istediğiniz dosyaları yükleyiniz.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 hover:bg-blue-50 transition"><h3 className="font-bold text-slate-700 mb-2">1. Fiili Veri</h3><label className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 block text-center text-sm"><input type="file" hidden onChange={(e)=>handleFileUpload(e, 'actual')}/>CSV Seç</label></div>
+                            <div className="border-2 border-dashed border-purple-200 rounded-xl p-6 hover:bg-purple-50 transition"><h3 className="font-bold text-slate-700 mb-2">2. Bütçe Verisi</h3><label className="bg-purple-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-purple-700 block text-center text-sm"><input type="file" hidden onChange={(e)=>handleFileUpload(e, 'budget')}/>CSV Seç</label></div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div ref={dashboardRef} className={`min-h-screen ${THEME.bg} p-6 font-sans text-slate-800`}>
+                    {/* Header */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <div><h1 className="text-xl font-bold flex items-center gap-2 text-slate-800"><Icons.TrendingUp className="text-blue-600"/> Finansal Yönetim Paneli</h1><p className="text-xs text-slate-500 mt-1">Kaynak: {fileName}</p></div>
+                            <div className="flex gap-2">
+                                <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
+                                    <label className="text-xs text-slate-500 font-bold">Mevsimsellik:</label>
+                                    <input type="checkbox" checked={isSeasonal} onChange={e => setIsSeasonal(e.target.checked)} className="cursor-pointer h-4 w-4 text-blue-600" />
+                                </div>
+                                <button onClick={() => setShowDataModal(true)} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition shadow-sm border border-slate-200"><Icons.Settings size={16}/> Veri İşlemleri</button>
+                                <button onClick={exportPDF} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition shadow-sm"><Icons.Printer size={16}/> PDF İndir</button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Masraf Yeri</label><input list="masrafYerleri" className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none" placeholder="Tümü..." value={filterMasrafYeri} onChange={e=>setFilterMasrafYeri(e.target.value)} /><datalist id="masrafYerleri">{uniqueMasrafYerleri.map((val, i) => <option key={i} value={val} />)}</datalist></div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mizan</label><input list="mizanlar" className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none" placeholder="Tümü..." value={filterMizan} onChange={e=>setFilterMizan(e.target.value)} /><datalist id="mizanlar">{uniqueMizanlar.map((val, i) => <option key={i} value={val} />)}</datalist></div>
+                        </div>
+                    </div>
+
+                    {/* DATA MODAL */}
+                    {showDataModal && (
+                        <div className="modal-overlay" onClick={() => setShowDataModal(false)}>
+                            <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
+                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Settings size={20}/> Veri Yönetimi</h2>
+                                <div className="space-y-4">
+                                    <div className="p-4 border rounded-lg bg-purple-50 border-purple-100">
+                                        <h3 className="font-bold text-purple-800 mb-2 text-sm">Bütçe Verisi Ekle</h3>
+                                        <label className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-purple-700 text-sm justify-center w-full"><input type="file" hidden onChange={(e)=>handleFileUpload(e, 'budget')}/><Icons.Upload size={16}/> Bütçe CSV Seç</label>
+                                        {budgetData.length > 0 && <div className="text-xs text-green-600 mt-2 text-center">✓ {budgetData.length} satır bütçe verisi yüklü</div>}
+                                    </div>
+                                    <button onClick={() => { setData([]); setBudgetData([]); setShowDataModal(false); }} className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 border border-red-200 px-4 py-3 rounded-lg hover:bg-red-100 text-sm font-bold"><Icons.Trash size={16}/> Tüm Verileri Sıfırla & Çıkış</button>
+                                </div>
+                                <button onClick={() => setShowDataModal(false)} className="mt-4 w-full text-slate-500 text-sm hover:text-slate-700">Kapat</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* GLOBAL KPI CARDS (TOP LEVEL) */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                        <div className={`${THEME.card} p-5 border-l-4 border-l-blue-500`}>
+                            <p className="text-xs text-slate-400 font-bold uppercase">Toplam Fiili (YTD)</p>
+                            <h3 className="text-2xl font-bold text-slate-800 mt-1">{kpiSummary.totalActual.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</h3>
+                        </div>
+                        <div className={`${THEME.card} p-5 border-l-4 border-l-purple-500`}>
+                            <p className="text-xs text-slate-400 font-bold uppercase">Toplam Bütçe</p>
+                            <h3 className="text-2xl font-bold text-slate-800 mt-1">{kpiSummary.totalBudget.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</h3>
+                        </div>
+                        <div className={`${THEME.card} p-5 border-l-4 border-l-indigo-500`}>
+                            <p className="text-xs text-slate-400 font-bold uppercase">Yıl Sonu Tahmini</p>
+                            <h3 className="text-2xl font-bold text-slate-800 mt-1">{kpiSummary.yearEnd.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</h3>
+                        </div>
+                        {/* 4. KART: BÜTÇE SAPMASI */}
+                        <div className={`${THEME.card} p-5 border-l-4 ${kpiSummary.deviation > 0 ? 'border-l-red-500' : 'border-l-green-500'}`}>
+                            <p className="text-xs text-slate-400 font-bold uppercase">Bütçe Sapması</p>
+                            <div className="flex items-baseline gap-2 mt-1">
+                                <h3 className={`text-2xl font-bold ${kpiSummary.deviation > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {kpiSummary.deviation > 0 ? '+' : ''}{kpiSummary.deviation.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺
+                                </h3>
+                                <span className={`text-sm font-medium ${kpiSummary.deviation > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                    ({kpiSummary.deviation > 0 ? '+' : ''}{kpiSummary.devPercent.toFixed(1)}%)
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">{kpiSummary.deviation > 0 ? 'Bütçe Aşımı' : 'Bütçe Altı'}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex mb-4 border-b border-slate-200 gap-1">{['dashboard','detail','audit'].map(t => (<button key={t} onClick={()=>setActiveTab(t)} className={`px-4 py-2 text-sm font-medium rounded-t-lg ${activeTab===t ? 'bg-white text-blue-600 border-x border-t border-slate-200' : 'text-slate-500 hover:bg-slate-100'}`}>{t==='dashboard'?'Özet':t==='detail'?'Detaylı Liste':<span className="flex items-center gap-2">Kontrol Merkezi <span className="bg-red-100 text-red-600 px-1.5 rounded-full text-xs">{groupedAnomalyData.length}</span></span>}</button>))}</div>
+
+                    {activeTab === 'dashboard' && (
+                        <div className="tab-content space-y-6">
+                            
+                            {/* CHART & TABLES */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                                <div className={`${THEME.card} p-6 lg:col-span-3`}>
+                                    <div className="h-96"><ResponsiveContainer><ComposedChart data={chartData.monthlyTrend}><defs><linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3}/></linearGradient><linearGradient id="colorBudget" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.3}/></linearGradient><pattern id="patternForecast" patternUnits="userSpaceOnUse" width="4" height="4"><path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{stroke:'#94a3b8', strokeWidth:1}} /></pattern></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0"/><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}}/><YAxis axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000000).toFixed(1)}M`} width={60} tick={{fill: '#64748b'}}/><Tooltip content={<CustomTooltip />} cursor={{fill: '#f1f5f9'}} /><Legend verticalAlign="top" height={36}/><Bar name="Bütçe" dataKey="budget" fill="url(#colorBudget)" radius={[4,4,0,0]} barSize={20} /><Bar name="Fiili" dataKey="actual" radius={[4,4,0,0]} barSize={20}>{chartData.monthlyTrend.map((e,i)=>(<Cell key={i} fill={e.isForecast ? 'url(#patternForecast)' : 'url(#colorActual)'} opacity={e.isForecast?0.5:1} />))}</Bar><Line type="monotone" name="Trend" dataKey="actual" stroke="#f97316" strokeWidth={3} dot={false} activeDot={{r: 6}} strokeDasharray="5 5" /></ComposedChart></ResponsiveContainer></div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className={`${THEME.card} p-4 border-l-4 border-l-emerald-500`}>
+                                    <div className="text-xs text-slate-400 uppercase font-bold">Kayıt Sayısı</div><div className="text-2xl font-bold">{tableDisplayData.length}</div>
+                                </div>
+                                
+                                {/* YENİ: BİRİM MALİYET KARTI & GİRİŞ ALANI */}
+                                <div className={`${THEME.card} p-4 border-l-4 border-l-blue-500 flex flex-col justify-between`}>
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase font-bold mb-1">Birim Maliyet {selectedMonth ? `(${selectedMonth})` : '(Yıllık)'}</div>
+                                        <div className="text-2xl font-bold">{unitCost.toLocaleString('tr-TR', {maximumFractionDigits:2})} ₺</div>
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <label className="text-[10px] text-slate-400">Aylık Hacim:</label>
+                                        <input 
+                                            type="number" 
+                                            value={operationalVolume} 
+                                            onChange={(e) => setOperationalVolume(Number(e.target.value))}
+                                            className="w-20 text-xs border rounded px-1 py-0.5 outline-none bg-slate-50 focus:bg-white"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className={`${THEME.card} p-4 border-l-4 border-l-orange-500`}>
+                                    <div className="text-xs text-slate-400 uppercase font-bold">En Yüksek Ay</div><div className="flex justify-between items-baseline"><div className="text-xl font-bold">{topMonth.name}</div><div className="text-sm font-medium text-orange-600 ml-2">{topMonth.value.toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</div></div>
+                                </div>
+                                <div className={`${THEME.card} p-4 border-l-4 border-l-indigo-500`}>
+                                    <div className="text-xs text-slate-400 uppercase font-bold">Ortalama/Ay</div><div className="text-2xl font-bold">{(filteredData.reduce((acc,c)=>acc+c.toplam2025,0)/12).toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className={`${THEME.card} p-6`}><h3 className="font-bold text-slate-700 mb-4">Masraf Dağılımı</h3><div className="h-64"><ResponsiveContainer><PieChart><Pie data={chartData.pieData} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value" labelLine={true} label={({ name, percent, value }) => `${formatMoney(value)} ₺ (%${(percent * 100).toFixed(1)})`}>{chartData.pieData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}</Pie><Tooltip formatter={v=>v.toLocaleString('tr-TR')+' ₺'} contentStyle={{borderRadius:'8px', border:'none', boxShadow:'0 4px 6px -1px rgba(0,0,0,0.1)'}}/><Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '11px', overflowY: 'auto', maxHeight: '200px'}}/></PieChart></ResponsiveContainer></div></div>
+                                
+                                {/* TOP 5 MASRAF YERİ (Accordion) */}
+                                <div className={`${THEME.card} p-6 overflow-hidden`}>
+                                    <h3 className="font-bold text-slate-700 mb-4">En Yüksek 5 Masraf Yeri</h3>
+                                    <div className="overflow-auto max-h-64">
+                                        <table className="w-full text-sm text-left">
+                                            <tbody>
+                                                {top5Expenses.map((item, idx) => (
+                                                    <React.Fragment key={idx}>
+                                                        <tr 
+                                                            className="border-b last:border-0 border-slate-100 clickable-row" 
+                                                            onClick={() => setExpandedTopExpense(expandedTopExpense === item.name ? null : item.name)}
+                                                        >
+                                                            <td className="py-3 text-slate-600 truncate max-w-[150px] flex items-center gap-2">
+                                                                {expandedTopExpense === item.name ? <Icons.ChevronUp size={12}/> : <Icons.ChevronDown size={12}/>}
+                                                                <span title={item.name}>{item.name}</span>
+                                                            </td>
+                                                            <td className="py-3 text-right font-bold text-slate-700">{item.value.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</td>
+                                                        </tr>
+                                                        {expandedTopExpense === item.name && (
+                                                            <tr className="detail-row">
+                                                                <td colSpan="2" className="p-3">
+                                                                    <div className="text-xs text-slate-500 font-bold mb-2">HARCAMA DETAYI (MİZAN):</div>
+                                                                    <div className="space-y-1">
+                                                                        {getBreakdown('mizanAdi', 'masrafYeriAdi', item.name).map((sub, i) => (
+                                                                            <div key={i} className="flex justify-between text-xs">
+                                                                                <span className="text-slate-600 truncate max-w-[150px]" title={sub.name}>{sub.name}</span>
+                                                                                <span className="font-mono text-slate-800">{sub.value.toLocaleString('tr-TR')} ₺</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </React.Fragment>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                {/* YENİ: BÜTÇE SAPMA ANALİZİ TABLOSU */}
+                                <div className={`${THEME.card} p-6 overflow-hidden`}>
+                                    <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Icons.Scale size={18} className="text-purple-500"/> Bütçe Sapma Kaynakları</h3>
+                                    <div className="overflow-auto max-h-64">
+                                        <table className="w-full text-sm text-left">
+                                            <thead>
+                                                <tr className="text-xs text-slate-400 border-b">
+                                                    <th className="pb-2 font-normal">Mizan Adı</th>
+                                                    <th className="pb-2 font-normal text-right">Sapma</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {topBudgetBreakers.length > 0 ? topBudgetBreakers.map((item, idx) => (
+                                                    <tr key={idx} className="border-b last:border-0 border-slate-100">
+                                                        <td className="py-3 text-slate-600 truncate max-w-[140px]" title={item.name}>{item.name}</td>
+                                                        <td className={`py-3 text-right font-bold ${item.diff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                            {item.diff > 0 ? '+' : ''}{item.diff.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺
+                                                            <div className="text-[10px] opacity-75">{item.diffPercent.toFixed(1)}%</div>
+                                                        </td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr><td colSpan="2" className="py-4 text-center text-xs text-slate-400">Bütçe verisi yok veya sapma bulunamadı.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'detail' && (
+                        <div className={`${THEME.card} flex flex-col h-[600px] tab-content`}>
+                            <div className="p-4 border-b flex justify-between items-center"><div className="font-bold text-sm text-slate-700">Detaylı Liste</div><div className="flex gap-2"><button onClick={()=>handleExport(tableDisplayData)} className="flex items-center gap-1 text-xs bg-white border px-3 py-2 rounded hover:bg-slate-50"><Icons.Download size={14}/> CSV İndir</button><div className="relative"><input className="pl-8 pr-2 py-1.5 border rounded text-sm w-48" placeholder="Ara..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/><Icons.Search className="absolute left-2 top-2 text-slate-400" size={14}/></div></div></div>
+                            <div className="flex-1 overflow-auto custom-scrollbar"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 sticky top-0 z-10 text-xs uppercase font-bold text-slate-500"><tr><th className="px-4 py-3">Direktörlük</th><th className="px-4 py-3">Masraf Yeri</th><th className="px-4 py-3">Mizan</th><th className="px-4 py-3">Sorumlu</th>{DISPLAY_MONTHS.map(m=><th key={m} className="px-2 py-3 text-right">{m}</th>)}<th className="px-4 py-3 text-right">Top.</th></tr></thead><tbody className="divide-y divide-slate-100">{tableDisplayData.map(r => (<tr key={r.id} className="hover:bg-slate-50"><td className="px-4 py-2 font-medium">{r.direktorluk}</td><td className="px-4 py-2 truncate max-w-xs" title={r.masrafYeriTam}> {r.masrafYeriKodu && <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1 rounded mr-1">{r.masrafYeriKodu}</span>} {r.masrafYeriAdi} </td><td className="px-4 py-2 truncate max-w-xs" title={r.mizanTam}> {r.mizanKodu && <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1 rounded mr-1">{r.mizanKodu}</span>} {r.mizanAdi} </td><td className="px-4 py-2">{r.butceSorumlusu}</td>{DISPLAY_MONTHS.map(m=><td key={m} className={`px-2 py-2 text-right font-mono text-xs ${selectedMonth===m?'bg-amber-50 font-bold':''}`}>{r.monthlyData[m]?.toLocaleString('tr-TR',{maximumFractionDigits:0})||'-'}</td>)}<td className="px-4 py-2 text-right font-bold">{r.toplam2025.toLocaleString('tr-TR',{maximumFractionDigits:0})}</td></tr>))}</tbody></table></div>
+                        </div>
+                    )}
+
+                    {activeTab === 'audit' && (
+                        <div className={`${THEME.card} flex flex-col h-[600px] tab-content border-t-4 border-red-500`}>
+                            <div className="p-4 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 bg-red-50">
+                                <div className="flex items-center gap-2 text-red-700 font-bold"><Icons.AlertTriangle size={20}/> Kontrol Merkezi</div>
+                                <div className="flex items-center gap-4 text-sm"><div className="flex items-center gap-2 bg-white px-3 py-1 rounded border border-red-200"><span className="text-slate-500 text-xs uppercase font-bold">Sapma Limiti:</span><input type="number" value={auditThreshold} onChange={e=>setAuditThreshold(Number(e.target.value))} className="w-20 text-right font-mono outline-none text-slate-700"/> <span className="text-slate-400">TL</span></div><div className="flex items-center gap-2 bg-white px-3 py-1 rounded border border-red-200"><span className="text-slate-500 text-xs uppercase font-bold">Değişim:</span><input type="number" value={auditPercent} onChange={e=>setAuditPercent(Number(e.target.value))} className="w-12 text-right font-mono outline-none text-slate-700"/> <span className="text-slate-400">%</span></div><button onClick={()=>handleExport(groupedAnomalyData)} className="text-xs bg-white border border-red-200 text-red-600 px-3 py-1.5 rounded hover:bg-red-100 flex gap-1"><Icons.Download size={14}/> İndir</button></div>
+                            </div>
+                            <div className="flex-1 overflow-auto custom-scrollbar">
+                                {groupedAnomalyData.length===0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Icons.Activity size={48} className="mb-2 opacity-20"/><p>Kriterlere uygun anormallik bulunamadı.</p></div> : 
+                                <table className="w-full text-sm text-left"><thead className="bg-slate-50 sticky top-0 font-bold text-xs uppercase text-slate-500"><tr><th className="px-6 py-3 w-10"></th><th className="px-6 py-3">Excel Satır No</th><th className="px-6 py-3">Durum</th><th className="px-6 py-3">Masraf Yeri (Kod - Ad)</th><th className="px-6 py-3">Mizan (Kod - Ad)</th></tr></thead><tbody className="divide-y divide-slate-100">{groupedAnomalyData.map((group) => { const hasSignFlip = group.anomalies.some(a => a.type === 'SIGN_FLIP'); return (<React.Fragment key={group.id}><tr className="hover:bg-red-50 cursor-pointer" onClick={() => toggleRow(group.id)}><td className="px-6 py-4 text-center text-slate-400">{expandedRows[group.id] ? <Icons.ChevronUp size={16}/> : <Icons.ChevronDown size={16}/>}</td><td className="px-6 py-4 font-mono font-bold text-slate-500">{group.id + 1}</td><td className="px-6 py-4"><span className={`px-2 py-1 rounded text-xs font-bold border ${hasSignFlip ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{group.anomalies.length} Tespit</span></td><td className="px-6 py-4">{group.masrafYeriKodu && <span className="font-mono text-xs bg-slate-100 px-1 rounded mr-1">{group.masrafYeriKodu}</span>} {group.masrafYeriAdi}</td><td className="px-6 py-4">{group.mizanKodu && <span className="font-mono text-xs bg-slate-100 px-1 rounded mr-1">{group.mizanKodu}</span>} {group.mizanAdi}</td></tr>{expandedRows[group.id] && (<tr className="bg-slate-50"><td colSpan="5" className="px-6 py-4"><div className="border border-slate-200 rounded-lg bg-white overflow-hidden"><table className="w-full text-xs"><thead className="bg-slate-100 text-slate-500 uppercase"><tr><th className="px-4 py-2">Ay</th><th className="px-4 py-2">Tip</th><th className="px-4 py-2">Tutar</th><th className="px-4 py-2">Açıklama</th></tr></thead><tbody>{group.anomalies.map((ano, idx) => (<tr key={idx} className="border-b last:border-0 border-slate-100"><td className="px-4 py-2 font-bold">{ano.month}</td><td className="px-4 py-2"><span className={`px-1.5 py-0.5 rounded ${ano.type==='SIGN_FLIP'?'bg-orange-100 text-orange-700':'bg-blue-100 text-blue-700'}`}>{ano.type==='SIGN_FLIP'?'İşaret Değişimi':'Sapma'}</span></td><td className="px-4 py-2 font-mono">{ano.val.toLocaleString('tr-TR')} ₺</td><td className="px-4 py-2 text-slate-600">{ano.desc}</td></tr>))}</tbody></table></div></td></tr>)}</React.Fragment>)})}</tbody></table>}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
