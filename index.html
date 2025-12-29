@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lojistik Finansal Yönetim Paneli - CFO View</title>
+    <title>Ahmet Rodoplu Horoz | Portfolyo</title>
     
-    <!-- === KÜTÜPHANELER === -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js" crossorigin="anonymous"></script>
@@ -31,80 +30,67 @@
         .tooltip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.85rem; }
         .tooltip-label { color: #64748b; }
         .tooltip-value { font-weight: 600; color: #334155; }
-        .tooltip-trend { font-size: 0.75rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-        .trend-up { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-        .trend-down { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-        .tag-real { background: #dbeafe; color: #1e40af; font-size: 0.65rem; padding: 1px 6px; border-radius: 99px; }
-        .tag-forecast { background: #f3f4f6; color: #4b5563; border: 1px dashed #9ca3af; font-size: 0.65rem; padding: 1px 6px; border-radius: 99px; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
         .expand-modal { width: 90%; height: 90%; background: white; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; animation: zoomIn 0.2s ease-out; }
         @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        .recharts-text.recharts-pie-label-text { font-size: 9px; font-weight: 600; fill: #4b5563; }
-        .clickable-row { cursor: pointer; transition: background-color 0.2s; }
-        .clickable-row:hover { background-color: #f1f5f9; }
-        .detail-row { background-color: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
-
-        /* AI Chat Styles */
         .ai-message { padding: 12px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; font-size: 0.9rem; line-height: 1.5; }
         .ai-message.user { background-color: #eff6ff; color: #1e3a8a; align-self: flex-end; border-bottom-right-radius: 2px; }
         .ai-message.bot { background-color: #f8fafc; border: 1px solid #e2e8f0; color: #334155; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .typing-indicator span { display: inline-block; width: 6px; height: 6px; background-color: #94a3b8; border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; margin: 0 1px; }
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
     </style>
 </head>
 <body class="text-slate-800">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-[1000] shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-blue-600">ARH</span>
+                    <span class="ml-2 text-slate-700 font-semibold text-lg hidden md:block">Ahmet Rodoplu Horoz | Portfolyo</span>
+                </div>
+                <div class="flex space-x-8 text-sm font-medium text-slate-500">
+                    <a href="#" class="hover:text-blue-600 transition">Hakkımda</a>
+                    <a href="#" class="hover:text-blue-600 transition border-b-2 border-blue-600 text-blue-600 pb-1">Finansal Panel</a>
+                    <a href="https://linkedin.com" target="_blank" class="hover:text-blue-600 transition">LinkedIn</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <div id="root"></div>
+
+    <a href="https://wa.me/905442657833?text=Merhaba%20Ahmet%20Bey,%20web%20sitenizdeki%20finansal%20panel%20hakkında%20yardım%20almak%20istiyorum." 
+       target="_blank" 
+       class="fixed bottom-6 right-6 z-[2000] bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center group"
+       title="WhatsApp ile Yardım Al">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.3a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+        <span class="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-500 ease-in-out whitespace-nowrap text-sm font-medium">
+            Destek Al
+        </span>
+    </a>
 
     <script type="text/babel">
         const { useState, useMemo, useEffect, useRef } = React;
         const getRecharts = () => window.Recharts || null;
 
-        // Gemini API Key (Placeholder)
-        const apiKey = ""; 
+        const apiKey = ""; // Gemini API Key Buraya
 
-        // --- ICONS ---
         const Icons = {
             Upload: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
             TrendingUp: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
             TrendingDown: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
-            AlertTriangle: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-            Filter: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
-            Download: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-            Search: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>,
-            ChevronDown: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
-            ChevronUp: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>,
-            Activity: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-            Printer: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+            AlertTriangle: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
             Settings: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
-            Trash: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-            Scale: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>,
-            Maximize: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>,
-            Minimize: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>,
-            Sparkles: ({size=24, className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>,
-            MessageSquare: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-            Send: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Printer: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+            Maximize: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
         };
 
         const DISPLAY_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         const MONTH_SEARCH_KEYS = [['oca','jan'],['sub','feb'],['mar'],['nis','apr'],['may'],['haz','jun'],['tem','jul'],['agu','aug'],['eyl','sep'],['eki','oct'],['kas','nov'],['ara','dec']];
-        const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#FF6B6B', '#4ECDC4'];
-        const SEASONALITY_FACTORS = {'Oca': 0.9, 'Şub': 0.9, 'Mar': 1.0, 'Nis': 1.0, 'May': 1.05, 'Haz': 1.05, 'Tem': 1.1, 'Ağu': 1.0, 'Eyl': 1.1, 'Eki': 1.15, 'Kas': 1.3, 'Ara': 1.4};
         const THEME = { bg: 'bg-slate-50', card: 'bg-white shadow-sm border border-slate-200 rounded-xl' };
-
-        // --- KPI CARD COMPONENT ---
-        const KPICard = ({ title, value, subtext, icon, border, children, onExpand }) => (
-            <div className={`p-5 border-l-4 ${border} ${THEME.card} relative group`}>
-                <button onClick={onExpand} className="absolute top-2 right-2 text-slate-300 hover:text-blue-600 transition p-1 opacity-0 group-hover:opacity-100" title="Detaylı Analiz"><Icons.Maximize size={18}/></button>
-                <p className="text-xs text-slate-400 font-bold uppercase">{title}</p>
-                <div className="mt-1">{value}</div>
-                {subtext && <div className="mt-1">{subtext}</div>}
-                {children}
-            </div>
-        );
 
         function App() {
             const [isRechartsReady, setIsRechartsReady] = useState(false);
@@ -112,435 +98,117 @@
             const [budgetData, setBudgetData] = useState([]);
             const [fileName, setFileName] = useState(null);
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [filterMasrafYeri, setFilterMasrafYeri] = useState('');
-            const [filterMizan, setFilterMizan] = useState('');
-            const [selectedMonth, setSelectedMonth] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
             const [loading, setLoading] = useState(false);
-            const [expandedRows, setExpandedRows] = useState({});
-            const [auditThreshold, setAuditThreshold] = useState(5000);
-            const [auditPercent, setAuditPercent] = useState(50);
             const [showDataModal, setShowDataModal] = useState(false);
             
-            // AI States
-            const [showAIModal, setShowAIModal] = useState(false);
-            const [aiMessages, setAiMessages] = useState([]);
-            const [aiInput, setAiInput] = useState("");
-            const [isAiThinking, setIsAiThinking] = useState(false);
-
-            // Expand States
-            const [expandedTopExpense, setExpandedTopExpense] = useState(null); 
-            const [expandedTopMizan, setExpandedTopMizan] = useState(null); 
-            const [expandedOverrun, setExpandedOverrun] = useState(null);
-            const [expandedSaving, setExpandedSaving] = useState(null);
-            const [expandedBudgetRow, setExpandedBudgetRow] = useState(null); 
-            const [expandedCardId, setExpandedCardId] = useState(null); 
-            const [isSeasonal, setIsSeasonal] = useState(false);
-
-            const dashboardRef = useRef(null);
-            const chatEndRef = useRef(null);
-
             useEffect(() => {
                 const checkInterval = setInterval(() => { if (window.Recharts) { setIsRechartsReady(true); clearInterval(checkInterval); } }, 500);
                 return () => clearInterval(checkInterval);
             }, []);
 
-            useEffect(() => {
-                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, [aiMessages]);
-
-            const normalizeString = (str) => str ? str.toLocaleLowerCase('tr-TR').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/[^a-z0-9]/g, '') : '';
             const parseNumber = (val) => { 
                 if (!val) return 0; 
                 let str = String(val).replace(/\s/g, '').replace(/\u00A0/g, ''); 
-                if (str === '-' || str === '') return 0; 
-                var clean = str; 
-                if (clean.includes('-')) clean = clean.replace(/-/g, ''); 
-                clean = clean.replace(/\./g, '').replace(',', '.'); 
+                let clean = str.replace(/\./g, '').replace(',', '.'); 
                 let result = parseFloat(clean); 
-                return str.includes('-') ? -result : (isNaN(result) ? 0 : result); 
+                return isNaN(result) ? 0 : result; 
             };
 
             const parseCSV = (text, type) => {
                 setLoading(true);
                 setTimeout(() => {
                     try {
-                        if (!text) throw new Error("Dosya boş.");
-                        let cleanText = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
-                        const lines = cleanText.split(/\r?\n/);
-                        if (lines.length < 2) throw new Error("Yetersiz veri.");
+                        const lines = text.split(/\r?\n/);
                         const delimiter = lines[0].includes(';') ? ';' : ',';
-                        const headers = lines[0].split(delimiter).map(h => h.trim());
-                        const normalizedHeaders = headers.map(h => normalizeString(h));
-                        const monthIndices = new Array(12).fill(-1);
-                        MONTH_SEARCH_KEYS.forEach((keys, idx) => { const f = normalizedHeaders.findIndex(h => keys.some(k => h.includes(k))); if (f !== -1) monthIndices[idx] = f; });
+                        const headers = lines[0].split(delimiter).map(h => h.trim().toLocaleLowerCase('tr-TR'));
                         
-                        const parsedData = [];
-                        for (let i = 1; i < lines.length; i++) {
-                            const cols = lines[i].split(delimiter);
-                            if (cols.length < 2) continue;
-                            const getVal = (keys) => { let idx = normalizedHeaders.findIndex(h => keys.includes(h)); if (idx === -1) idx = normalizedHeaders.findIndex(h => keys.some(k => h.startsWith(k))); if (idx === -1) idx = normalizedHeaders.findIndex(h => keys.some(k => h.includes(k))); return idx !== -1 ? (cols[idx] || '') : ''; };
-                            const mizanAdi = getVal(['mizanadi', 'mizanad']);
-                            if (!mizanAdi && type === 'actual') continue; 
-                            const monthlyData = {}; let total = 0;
-                            monthIndices.forEach((cIdx, mIdx) => { const val = (cIdx !== -1 && cIdx < cols.length) ? parseNumber(cols[cIdx]) : 0; monthlyData[DISPLAY_MONTHS[mIdx]] = val; total += val; });
-                            parsedData.push({ id: i, direktorluk: getVal(['direktorluk']).replace(/"/g, '').trim() || 'Diğer', masrafYeriKodu: getVal(['masrafyerikodu', 'masrafyerikod']).replace(/"/g, '').trim(), masrafYeriAdi: getVal(['masrafyeradi', 'masrafyerad']).replace(/"/g, '').trim(), masrafYeriTam: (getVal(['masrafyerikodu', 'masrafyerikod']) ? `[${getVal(['masrafyerikodu', 'masrafyerikod']).replace(/"/g, '').trim()}] ` : '') + getVal(['masrafyeradi', 'masrafyerad']).replace(/"/g, '').trim(), mizanKodu: getVal(['mizankodu']).replace(/"/g, '').trim(), mizanAdi: mizanAdi.replace(/"/g, '').trim(), mizanTam: (getVal(['mizankodu']) ? `[${getVal(['mizankodu']).replace(/"/g, '').trim()}] ` : '') + mizanAdi.replace(/"/g, '').trim(), butceSorumlusu: getVal(['butcesor']).replace(/"/g, '').trim(), toplam2025: total, monthlyData });
-                        }
-                        if (type === 'actual') setData(parsedData); else setBudgetData(parsedData);
+                        const parsed = lines.slice(1).map((line, i) => {
+                            const cols = line.split(delimiter);
+                            if (cols.length < 2) return null;
+                            const monthlyData = {};
+                            DISPLAY_MONTHS.forEach((m, idx) => {
+                                monthlyData[m] = parseNumber(cols[idx + 4]); // Sütun yapısına göre düzenlenmeli
+                            });
+                            return { id: i, monthlyData, toplam2025: Object.values(monthlyData).reduce((a,b)=>a+b, 0) };
+                        }).filter(Boolean);
+
+                        if (type === 'actual') setData(parsed); else setBudgetData(parsed);
                         setShowDataModal(false);
-                    } catch (e) { alert(e.message); } finally { setLoading(false); }
+                    } catch (e) { alert("Hata: " + e.message); } finally { setLoading(false); }
                 }, 200);
             };
 
-            const handleFileUpload = (e, type) => { const f = e.target.files?.[0]; if (f) { if(type==='actual') setFileName(f.name); setLoading(true); const r = new FileReader(); r.onload = (ev) => parseCSV(ev.target.result, type); r.readAsText(f, 'ISO-8859-9'); } };
-            const uniqueMasrafYerleri = useMemo(() => [...new Set([...data, ...budgetData].map(r => r.masrafYeriTam).filter(Boolean))].sort(), [data, budgetData]);
-            const uniqueMizanlar = useMemo(() => [...new Set([...data, ...budgetData].map(r => r.mizanTam).filter(Boolean))].sort(), [data, budgetData]);
-            const filteredData = useMemo(() => data.filter(r => (filterMasrafYeri ? r.masrafYeriTam === filterMasrafYeri : true) && (filterMizan ? r.mizanTam === filterMizan : true)), [data, filterMasrafYeri, filterMizan]);
-            const filteredBudget = useMemo(() => budgetData.filter(r => (filterMasrafYeri ? r.masrafYeriTam === filterMasrafYeri : true) && (filterMizan ? r.mizanTam === filterMizan : true)), [budgetData, filterMasrafYeri, filterMizan]);
-
-            const chartData = useMemo(() => {
-                const monthTotals = DISPLAY_MONTHS.map(m => filteredData.reduce((acc, c) => acc + (c.monthlyData[m] || 0), 0));
-                const budgetTotals = DISPLAY_MONTHS.map(m => filteredBudget.reduce((acc, c) => acc + (c.monthlyData[m] || 0), 0));
-                let lastRealIndex = -1;
-                for (let i = monthTotals.length - 1; i >= 0; i--) { if (monthTotals[i] !== 0) { lastRealIndex = i; break; } }
-                const realMonthsCount = lastRealIndex + 1;
-                const totalRealValue = monthTotals.slice(0, realMonthsCount).reduce((a,b)=>a+b, 0);
-                const averageMonthly = realMonthsCount > 0 ? totalRealValue / realMonthsCount : 0;
-                return {
-                    monthlyTrend: DISPLAY_MONTHS.map((m, idx) => {
-                        const isForecast = idx > lastRealIndex;
-                        let actualVal = isForecast ? averageMonthly : monthTotals[idx];
-                        if (isForecast && isSeasonal) actualVal = actualVal * (SEASONALITY_FACTORS[m] || 1);
-                        const budgetVal = budgetTotals[idx];
-                        let prevVal = null; let changePercent = 0; let direction = 'neutral';
-                        if (idx > 0 && !isForecast) {
-                            const prevMonthTotal = monthTotals[idx - 1];
-                            prevVal = prevMonthTotal;
-                            if (prevVal !== 0) { const diff = actualVal - prevVal; changePercent = (diff / Math.abs(prevVal)) * 100; direction = diff >= 0 ? 'up' : 'down'; } else if (actualVal !== 0) { direction = 'up'; changePercent = 100; }
-                        }
-                        return { name: m, index: idx, actual: actualVal, value: actualVal, budget: budgetVal, isForecast, prevValue: isForecast ? null : prevVal, changePercent: isForecast ? 0 : Math.abs(changePercent).toFixed(1), direction, diff: budgetVal !== 0 ? ((actualVal - budgetVal) / Math.abs(budgetVal)) * 100 : 0 };
-                    }),
-                    pieData: Object.entries(data.reduce((acc, c) => { acc[c.direktorluk] = (acc[c.direktorluk] || 0) + c.toplam2025; return acc; }, {})).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value),
-                    yearEndForecast: totalRealValue + (averageMonthly * (11 - lastRealIndex))
-                };
-            }, [filteredData, filteredBudget, data, isSeasonal]);
-
-            const directorateBreakdown = useMemo(() => {
-                const grouped = filteredData.reduce((acc, r) => { acc[r.direktorluk] = (acc[r.direktorluk] || 0) + r.toplam2025; return acc; }, {});
-                return Object.entries(grouped).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
-            }, [filteredData]);
-
-            const budgetBreakdown = useMemo(() => {
-                const grouped = {};
-                filteredData.forEach(r => { if(!grouped[r.direktorluk]) grouped[r.direktorluk] = { actual: 0, budget: 0 }; grouped[r.direktorluk].actual += r.toplam2025; });
-                filteredBudget.forEach(r => { if(!grouped[r.direktorluk]) grouped[r.direktorluk] = { actual: 0, budget: 0 }; grouped[r.direktorluk].budget += r.toplam2025; });
-                return Object.entries(grouped).map(([name, v]) => ({ name, ...v, diff: v.actual - v.budget })).sort((a,b) => b.actual - a.actual);
-            }, [filteredData, filteredBudget]);
-
-            const budgetDeviations = useMemo(() => {
-                if (filteredBudget.length === 0) return { overruns: [], savings: [] };
-                const comparison = {};
-                filteredData.forEach(r => { const key = r.mizanAdi; if(!comparison[key]) comparison[key] = { actual: 0, budget: 0 }; comparison[key].actual += selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; });
-                filteredBudget.forEach(r => { const key = r.mizanAdi; if(!comparison[key]) comparison[key] = { actual: 0, budget: 0 }; comparison[key].budget += selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; });
-                const allItems = Object.entries(comparison).map(([name, val]) => ({ name, actual: val.actual, budget: val.budget, diff: val.actual - val.budget, diffPercent: val.budget !== 0 ? ((val.actual - val.budget) / Math.abs(val.budget)) * 100 : 0 }));
-                const overruns = allItems.filter(i => i.diff > 0).sort((a,b) => b.diff - a.diff);
-                const savings = allItems.filter(i => i.diff < 0).sort((a,b) => a.diff - b.diff);
-                return { overruns, savings };
-            }, [filteredData, filteredBudget, selectedMonth]);
-
-            const kpiSummary = useMemo(() => {
-                const totalActual = filteredData.reduce((acc, c) => acc + c.toplam2025, 0);
-                const totalBudget = filteredBudget.reduce((acc, c) => acc + c.toplam2025, 0);
-                const yearEnd = chartData.yearEndForecast;
-                const deviation = totalActual - totalBudget;
-                const devPercent = totalBudget !== 0 ? (deviation / Math.abs(totalBudget)) * 100 : 0;
-                return { totalActual, totalBudget, yearEnd, deviation, devPercent };
-            }, [filteredData, filteredBudget, chartData]);
-
-            const getBudgetDrillDown = (mizanName) => {
-                const grouped = {};
-                filteredData.filter(r => r.mizanAdi === mizanName).forEach(r => { const key = r.masrafYeriAdi; if(!grouped[key]) grouped[key] = { actual: 0, budget: 0 }; grouped[key].actual += selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; });
-                filteredBudget.filter(r => r.mizanAdi === mizanName).forEach(r => { const key = r.masrafYeriAdi; if(!grouped[key]) grouped[key] = { actual: 0, budget: 0 }; grouped[key].budget += selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; });
-                return Object.entries(grouped).map(([name, val]) => ({ name, ...val, diff: val.actual - val.budget })).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 10);
+            const handleFileUpload = (e, type) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                    if(type==='actual') setFileName(f.name);
+                    const r = new FileReader();
+                    r.onload = (ev) => parseCSV(ev.target.result, type);
+                    r.readAsText(f, 'ISO-8859-9');
+                }
             };
 
-            const generateAIAnalysis = async () => {
-                if (!apiKey) { setAiMessages([{ role: 'bot', text: 'Üzgünüm, API anahtarı yapılandırılmamış.' }]); return; }
-                setIsAiThinking(true);
-                setAiMessages([{ role: 'bot', text: 'Verileri inceliyorum...' }]);
-                const prompt = `Sen CFO'sun. Özetle: Fiili=${kpiSummary.totalActual}TL, Bütçe=${kpiSummary.totalBudget}TL. Yıl sonu tahmini=${kpiSummary.yearEnd}TL. En yüksek gider=${top5Expenses[0]?.name}. Yorumla.`;
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                    const data = await response.json();
-                    setAiMessages([{ role: 'bot', text: data.candidates[0].content.parts[0].text }]);
-                } catch (e) { setAiMessages([{ role: 'bot', text: 'Hata oluştu.' }]); } finally { setIsAiThinking(false); }
-            };
-            const handleChatSubmit = async (e) => { e.preventDefault(); if (!aiInput.trim()) return; setAiMessages(p => [...p, {role:'user', text:aiInput}]); setAiInput(""); setIsAiThinking(true); setTimeout(()=> { setAiMessages(p => [...p, {role:'bot', text:'Bu demo modudur. API anahtarı girildiğinde gerçek cevaplar verebilirim.'}]); setIsAiThinking(false); }, 1000); };
-            const exportPDF = async () => {
-                const element = dashboardRef.current; if (!element) return;
-                const buttons = element.querySelectorAll('button, input, select'); buttons.forEach(b => b.style.visibility = 'hidden');
-                const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
-                const imgData = canvas.toDataURL('image/png');
-                buttons.forEach(b => b.style.visibility = 'visible');
-                const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
-                pdf.addImage(imgData, 'PNG', 0, 0, 297, (canvas.height * 297) / canvas.width);
-                pdf.save(`Rapor_${new Date().toISOString().slice(0,10)}.pdf`);
-            };
-            const toggleRow = (id) => setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
-            const tableDisplayData = useMemo(() => { let d = [...filteredData]; if (searchTerm) { const term = searchTerm.toLocaleLowerCase('tr-TR'); d = d.filter(r => (r.masrafYeriTam+r.mizanTam+r.butceSorumlusu).toLocaleLowerCase('tr-TR').includes(term)); } if (selectedMonth) d.sort((a,b) => (b.monthlyData[selectedMonth]||0) - (a.monthlyData[selectedMonth]||0)); else d.sort((a,b) => b.toplam2025 - a.toplam2025); return d; }, [filteredData, selectedMonth, searchTerm]);
-            const getBreakdown2 = (targetKey, matchKey, matchValue) => { const relevantData = filteredData.filter(r => r[matchKey] === matchValue); const grouped = relevantData.reduce((acc, r) => { const key = r[targetKey]; const val = selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; acc[key] = (acc[key] || 0) + val; return acc; }, {}); return Object.entries(grouped).map(([name, value]) => ({ name, value })).filter(x => x.value !== 0).sort((a, b) => b.value - a.value).slice(0, 5); };
-            const top5Expenses = useMemo(() => { const grouped = filteredData.reduce((acc, r) => { const key = r.masrafYeriAdi || r.masrafYeri; const val = selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; acc[key] = (acc[key] || 0) + val; return acc; }, {}); return Object.entries(grouped).map(([name, value]) => ({ name, value })).filter(x => x.value !== 0).sort((a, b) => b.value - a.value).slice(0, 5); }, [filteredData, selectedMonth]);
-            const top5Mizan = useMemo(() => { const grouped = filteredData.reduce((acc, r) => { const keyName = r.mizanAdi || 'Bilinmeyen Mizan'; const keyCode = r.mizanKodu || ''; const key = JSON.stringify({ name: keyName, code: keyCode }); const val = selectedMonth ? (r.monthlyData[selectedMonth] || 0) : r.toplam2025; acc[key] = (acc[key] || 0) + val; return acc; }, {}); return Object.entries(grouped).map(([keyStr, value]) => { const { name, code } = JSON.parse(keyStr); return { name, code, value }; }).filter(x => x.value !== 0).sort((a, b) => b.value - a.value).slice(0, 5); }, [filteredData, selectedMonth]);
-            const groupedAnomalyData = useMemo(() => { if (data.length === 0) return []; const groups = {}; const NOISE_THRESHOLD = auditThreshold; const PERCENTAGE_THRESHOLD = auditPercent / 100; data.forEach(row => { const rowAnomalies = []; const months = DISPLAY_MONTHS; for (let i = 1; i < months.length; i++) { const currentMonthName = months[i]; const currentVal = row.monthlyData[currentMonthName]; if (currentVal === 0) continue; let sumHistory = 0; let countHistory = 0; for (let j = 0; j < i; j++) { sumHistory += row.monthlyData[months[j]]; countHistory++; } const averageHistory = countHistory > 0 ? (sumHistory / countHistory) : 0; const prevVal = row.monthlyData[months[i-1]]; const isSignFlip = (prevVal > 0 && currentVal < 0) || (prevVal < 0 && currentVal > 0); const isCorrection = Math.abs(prevVal + currentVal) < 1; if (isSignFlip && !isCorrection && Math.abs(currentVal - prevVal) > NOISE_THRESHOLD) { rowAnomalies.push({ type: 'SIGN_FLIP', severity: 'high', desc: `İşaret Değişimi: ${months[i-1]} (${prevVal.toLocaleString()} ₺) -> ${currentMonthName} (${currentVal.toLocaleString()} ₺)`, month: currentMonthName, val: currentVal }); continue; } if (Math.abs(averageHistory) < 100) { if (Math.abs(currentVal) > (NOISE_THRESHOLD * 5)) { rowAnomalies.push({ type: 'SPIKE', severity: 'medium', desc: `Ani Yük (Geçmiş Ort: 0) -> ${currentMonthName}: ${currentVal.toLocaleString()} ₺`, month: currentMonthName, val: currentVal }); } } else { const deviation = Math.abs(currentVal - averageHistory); const percentChange = deviation / Math.abs(averageHistory); if (percentChange > PERCENTAGE_THRESHOLD && deviation > NOISE_THRESHOLD) { const direction = currentVal > averageHistory ? 'Artış' : 'Azalış'; rowAnomalies.push({ type: 'DEVIATION', severity: 'medium', desc: `Ortalamadan Sapma (%${(percentChange*100).toFixed(0)} ${direction}): Ort. ${averageHistory.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺ -> Güncel ${currentVal.toLocaleString('tr-TR')} ₺`, month: currentMonthName, val: currentVal }); } } } if (rowAnomalies.length > 0) { groups[row.id] = { id: row.id, direktorluk: row.direktorluk, masrafYeriKodu: row.masrafYeriKodu, masrafYeriAdi: row.masrafYeriAdi, mizanKodu: row.mizanKodu, mizanAdi: row.mizanAdi, anomalies: rowAnomalies }; } }); return Object.values(groups); }, [data, auditThreshold, auditPercent]);
-            const cumulativeData = useMemo(() => { const trend = chartData.monthlyTrend; let cumActual = 0; let cumBudget = 0; return trend.map(t => { if (!t.isForecast) cumActual += t.actual; cumBudget += t.budget; return { ...t, cumActual: t.isForecast ? null : cumActual, cumBudget }; }); }, [chartData]);
-            const topMonth = useMemo(() => { if (!chartData.monthlyTrend.length) return { name: '-', value: 0 }; const realMonths = chartData.monthlyTrend.filter(x => !x.isForecast); if (realMonths.length === 0) return { name: '-', value: 0 }; return [...realMonths].sort((a,b) => b.value - a.value)[0]; }, [chartData]);
-            const formatMoney = (val) => { if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`; if (val >= 1000) return `${(val / 1000).toFixed(1)}K`; return val.toLocaleString('tr-TR'); };
-
-            if (!isRechartsReady) return <div className="flex h-screen items-center justify-center"><div className="loader"></div></div>;
-            const { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } = window.Recharts;
-
-            const CustomTooltip = ({ active, payload, label }) => { if (active && payload && payload.length) { const d = payload[0].payload; const diffVal = (d.actual || 0) - (d.budget || 0); const displayActual = d.actual != null ? d.actual : 0; const displayBudget = d.budget != null ? d.budget : 0; const displayPrev = d.prevValue != null ? d.prevValue : 0; return ( <div className="custom-tooltip-card"> <div className="tooltip-header"><span>{label}</span>{d.isForecast ? <span className="tooltip-tag tag-forecast">TAHMİN</span> : <span className="tooltip-tag tag-real">FİİLİ</span>}</div> <div className="tooltip-row"><span className="tooltip-label">Fiili:</span><span className="tooltip-value" style={{color: '#3b82f6'}}>{displayActual.toLocaleString('tr-TR')} ₺</span></div> <div className="tooltip-row"><span className="tooltip-label">Bütçe:</span><span className="tooltip-value" style={{color: '#8b5cf6'}}>{displayBudget.toLocaleString('tr-TR')} ₺</span></div> {!d.isForecast && d.budget !== 0 && (<div className="tooltip-row border-t pt-2 mt-2"><span className="tooltip-label">Sapma:</span><span className={`tooltip-value ${diffVal > 0 ? 'text-pos' : 'text-neg'}`}>{diffVal > 0 ? '+' : ''}{diffVal.toLocaleString('tr-TR')} ₺ <span className="text-xs ml-1">({d.diff > 0 ? '+' : ''}{d.diff ? d.diff.toFixed(1) : 0}%)</span></span></div>)} {!d.isForecast && d.prevValue !== null && (<div className="tooltip-row"><span className="tooltip-label">Önceki Ay:</span><span className="tooltip-value">{displayPrev.toLocaleString('tr-TR')} ₺</span></div>)} {!d.isForecast && d.direction !== 'neutral' && d.prevValue !== null && (<div className={`tooltip-trend ${d.direction === 'up' ? 'trend-up' : 'trend-down'}`}>{d.direction === 'up' ? '▲' : '▼'} %{d.changePercent} {d.direction === 'up' ? 'Artış' : 'Azalış'}</div>)} </div> ); } return null; };
-
-            const renderExpandedContent = () => {
-                if (expandedCardId === 'actual') {
-                    return (
-                        <div className="p-6 h-full flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Activity size={24}/> Direktörlük Bazlı Fiili Harcama Dağılımı</h2>
-                            <div className="flex-1 overflow-auto custom-scrollbar"><table className="w-full text-sm text-left"><thead className="bg-slate-100 text-slate-600 uppercase"><tr><th className="p-3">Direktörlük</th><th className="p-3 text-right">Toplam Tutar</th><th className="p-3 text-right">Pay (%)</th></tr></thead><tbody className="divide-y divide-slate-100">{directorateBreakdown.map((d, i) => (<tr key={i} className="hover:bg-slate-50"><td className="p-3 font-medium">{d.name}</td><td className="p-3 text-right font-bold">{d.value.toLocaleString('tr-TR')} ₺</td><td className="p-3 text-right text-slate-500">%{(d.value/kpiSummary.totalActual * 100).toFixed(1)}</td></tr>))}</tbody></table></div>
-                        </div>
-                    );
-                }
-                if (expandedCardId === 'budget') {
-                    return (
-                        <div className="p-6 h-full flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Scale size={24}/> Kümülatif Bütçe İzleme (Burn Rate)</h2>
-                             <div className="h-64 mb-6"><ResponsiveContainer><AreaChart data={cumulativeData}><defs><linearGradient id="colorCumActual" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis tickFormatter={v=>`${(v/1000000).toFixed(1)}M`} /><Tooltip formatter={(value, name) => [value.toLocaleString('tr-TR') + ' ₺', name === 'cumActual' ? 'Kümülatif Fiili' : 'Kümülatif Bütçe']} /><Legend /><Area type="monotone" dataKey="cumActual" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCumActual)" name="Kümülatif Fiili" /><Line type="monotone" dataKey="cumBudget" stroke="#8b5cf6" strokeWidth={3} dot={false} name="Kümülatif Bütçe" /></AreaChart></ResponsiveContainer></div>
-                            <h3 className="font-bold text-slate-700 mb-2">Departman Bazlı Durum</h3>
-                            <div className="flex-1 overflow-auto custom-scrollbar"><table className="w-full text-sm text-left"><thead className="bg-slate-100 text-slate-600 uppercase"><tr><th className="p-3">Direktörlük</th><th className="p-3 text-right">Bütçe</th><th className="p-3 text-right">Fiili</th><th className="p-3 text-right">Fark</th><th className="p-3 w-32">Durum</th></tr></thead><tbody className="divide-y divide-slate-100">{budgetBreakdown.map((d, i) => { const percent = d.budget ? Math.min(100, Math.max(0, (d.actual / d.budget) * 100)) : 0; return (<tr key={i} className="hover:bg-slate-50"><td className="p-3 font-medium">{d.name}</td><td className="p-3 text-right">{d.budget.toLocaleString('tr-TR')} ₺</td><td className="p-3 text-right font-bold text-blue-600">{d.actual.toLocaleString('tr-TR')} ₺</td><td className={`p-3 text-right font-bold ${d.diff > 0 ? 'text-red-600' : 'text-green-600'}`}>{d.diff > 0 ? '+' : ''}{d.diff.toLocaleString('tr-TR')} ₺</td><td className="p-3"><div className="w-full bg-slate-200 rounded-full h-2.5"><div className={`h-2.5 rounded-full ${d.diff > 0 ? 'bg-red-500' : 'bg-green-500'}`} style={{width: `${percent}%`}}></div></div></td></tr>); })}</tbody></table></div>
-                        </div>
-                    );
-                }
-                if (expandedCardId === 'forecast') {
-                    return (
-                         <div className="p-6 h-full flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.TrendingUp size={24}/> Yıl Sonu Tahmin Detayı</h2>
-                            <div className="flex-1 overflow-auto custom-scrollbar"><table className="w-full text-sm text-left"><thead className="bg-slate-100 text-slate-600 uppercase"><tr><th className="p-3">Ay</th><th className="p-3">Veri Tipi</th><th className="p-3 text-right">Tutar</th><th className="p-3 text-right">Mevsimsellik Çarpanı</th></tr></thead><tbody className="divide-y divide-slate-100">{chartData.monthlyTrend.map((m, i) => (<tr key={i} className={m.isForecast ? "bg-indigo-50" : ""}><td className="p-3 font-bold">{m.name}</td><td className="p-3"><span className={`text-[10px] uppercase px-2 py-1 rounded-full ${m.isForecast ? 'bg-indigo-200 text-indigo-800' : 'bg-green-200 text-green-800'}`}>{m.isForecast ? 'Tahmin' : 'Gerçekleşen'}</span></td><td className="p-3 text-right font-mono">{m.value.toLocaleString('tr-TR')} ₺</td><td className="p-3 text-right text-slate-500">{m.isForecast && isSeasonal ? `x${SEASONALITY_FACTORS[m.name]}` : '-'}</td></tr>))}<tr className="bg-slate-800 text-white font-bold"><td colSpan="2" className="p-3 text-right">YIL SONU TOPLAM:</td><td className="p-3 text-right">{chartData.yearEndForecast.toLocaleString('tr-TR')} ₺</td><td></td></tr></tbody></table></div>
-                        </div>
-                    );
-                }
-                if (expandedCardId === 'overrun' || expandedCardId === 'saving') {
-                     const list = expandedCardId === 'overrun' ? budgetDeviations.overruns : budgetDeviations.savings;
-                     const title = expandedCardId === 'overrun' ? 'Bütçe Aşımları (Detaylı)' : 'Bütçe Tasarrufları (Detaylı)';
-                     const colorClass = expandedCardId === 'overrun' ? 'text-red-600' : 'text-green-600';
-                     const detailedList = expandedCardId === 'overrun' ? budgetDeviations.overruns : budgetDeviations.savings; 
-                     return (
-                        <div className="p-6 h-full flex flex-col">
-                            <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${colorClass}`}>{title}</h2>
-                            <div className="flex-1 overflow-auto custom-scrollbar">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-100 text-slate-600 uppercase"><tr><th className="p-3">Mizan Kalemi</th><th className="p-3 text-right">Bütçe</th><th className="p-3 text-right">Fiili</th><th className="p-3 text-right">Fark</th></tr></thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {detailedList.map((item, idx) => (
-                                            <React.Fragment key={idx}>
-                                                <tr className="hover:bg-slate-50 cursor-pointer" onClick={() => setExpandedBudgetRow(expandedBudgetRow === item.name ? null : item.name)}>
-                                                    <td className="p-3 flex items-center gap-2">{expandedBudgetRow === item.name ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}{item.name}</td>
-                                                    <td className="p-3 text-right">{item.budget.toLocaleString('tr-TR')} ₺</td>
-                                                    <td className="p-3 text-right">{item.actual.toLocaleString('tr-TR')} ₺</td>
-                                                    <td className={`p-3 text-right font-bold ${item.diff > 0 ? 'text-red-600' : 'text-green-600'}`}>{item.diff > 0 ? '+' : ''}{item.diff.toLocaleString('tr-TR')} ₺</td>
-                                                </tr>
-                                                {expandedBudgetRow === item.name && (<tr className="bg-slate-50"><td colSpan="4" className="p-4"><div className="bg-white border rounded-lg p-3 shadow-sm"><h4 className="text-xs font-bold text-slate-500 mb-2 uppercase">Masraf Merkezi Bazlı Kırılım (Top 10 Etki)</h4><div className="space-y-1">{getBudgetDrillDown(item.name).map((sub, i) => (<div key={i} className="flex justify-between text-xs border-b border-slate-100 last:border-0 py-1"><span className="text-slate-700">{sub.name}</span><div className="flex gap-4"><span className="text-slate-400">Bütçe: {sub.budget.toLocaleString('tr-TR')}</span><span className={`font-mono font-bold ${sub.diff > 0 ? 'text-red-600' : 'text-green-600'}`}>Fark: {sub.diff > 0 ? '+' : ''}{sub.diff.toLocaleString('tr-TR')}</span></div></div>))}</div></div></td></tr>)}
-                                            </React.Fragment>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                     );
-                }
-                if (expandedCardId === 'kpi-count') {
-                     const countByDir = Object.entries(filteredData.reduce((acc, r) => { acc[r.direktorluk] = (acc[r.direktorluk] || 0) + 1; return acc; }, {})).sort((a,b)=>b[1]-a[1]);
-                     return (
-                        <div className="p-6 h-full flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Activity size={24}/> Kayıt Sayısı Analizi (İşlem Hacmi)</h2>
-                            <div className="flex-1 overflow-auto custom-scrollbar"><table className="w-full text-sm text-left"><thead className="bg-slate-100 text-slate-600 uppercase"><tr><th className="p-3">Direktörlük</th><th className="p-3 text-right">Kayıt Adedi</th><th className="p-3 w-1/3">Dağılım</th></tr></thead><tbody className="divide-y divide-slate-100">{countByDir.map((d, i) => (<tr key={i} className="hover:bg-slate-50"><td className="p-3 font-medium">{d[0]}</td><td className="p-3 text-right font-bold">{d[1]}</td><td className="p-3"><div className="w-full bg-slate-200 rounded-full h-2"><div className="bg-emerald-500 h-2 rounded-full" style={{width: `${(d[1]/filteredData.length)*100}%`}}></div></div></td></tr>))}</tbody></table></div>
-                        </div>
-                     );
-                }
-                if (expandedCardId === 'kpi-peak') {
-                    const avg = kpiSummary.totalActual / 12; 
-                    const deviationData = chartData.monthlyTrend.filter(m => !m.isForecast).map(m => ({ name: m.name, value: m.actual, diff: m.actual - avg }));
-                    return (
-                        <div className="p-6 h-full flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.TrendingUp size={24}/> Aylık Yük Analizi (Ortalamadan Sapma)</h2>
-                            <div className="h-80 w-full"><ResponsiveContainer><ComposedChart data={deviationData}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name" /><YAxis /><Tooltip formatter={v => v.toLocaleString('tr-TR') + ' ₺'}/><Legend /><Bar dataKey="value" name="Aylık Tutar" fill="#cbd5e1" barSize={30} /><Line type="monotone" dataKey="diff" name="Ortalamadan Fark" stroke="#f97316" strokeWidth={2} /></ComposedChart></ResponsiveContainer></div>
-                            <div className="mt-4 text-sm text-slate-500 text-center">Turuncu çizgi, aylık ortalamaya ({avg.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺) göre ne kadar yukarıda/aşağıda olduğunu gösterir.</div>
-                        </div>
-                    );
-                }
-                if (expandedCardId === 'kpi-avg') {
-                     return (
-                        <div className="p-6 h-full flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Scale size={24}/> Ortalama Harcama Analizi</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-indigo-50 p-4 rounded-lg text-center"><div className="text-xs text-indigo-500 uppercase font-bold">Aylık Ortalama</div><div className="text-2xl font-bold text-indigo-700">{(kpiSummary.totalActual / 12).toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</div></div>
-                                <div className="bg-blue-50 p-4 rounded-lg text-center"><div className="text-xs text-blue-500 uppercase font-bold">Günlük Ortalama (Tahmini)</div><div className="text-2xl font-bold text-blue-700">{(kpiSummary.totalActual / 365).toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</div></div>
-                            </div>
-                             <div className="flex-1 overflow-auto custom-scrollbar mt-4"><table className="w-full text-sm text-left"><thead className="bg-slate-100 text-slate-600 uppercase"><tr><th className="p-3">Ay</th><th className="p-3 text-right">Tutar</th><th className="p-3 text-right">Ortalamaya Göre</th></tr></thead><tbody className="divide-y divide-slate-100">{chartData.monthlyTrend.filter(m => !m.isForecast).map((m, i) => { const avg = kpiSummary.totalActual / 12; const diff = m.actual - avg; const percent = (diff / avg) * 100; return (<tr key={i} className="hover:bg-slate-50"><td className="p-3 font-bold">{m.name}</td><td className="p-3 text-right">{m.actual.toLocaleString('tr-TR')} ₺</td><td className={`p-3 text-right font-bold ${diff > 0 ? 'text-orange-600' : 'text-green-600'}`}>{diff > 0 ? '▲' : '▼'} %{Math.abs(percent).toFixed(1)}</td></tr>)})}</tbody></table></div>
-                        </div>
-                     );
-                }
-                return null;
-            };
-
-            if (data.length === 0) return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
-                    <div className="bg-white p-10 rounded-2xl shadow-xl border border-slate-200 text-center max-w-2xl w-full">
-                        <div className="flex justify-center mb-6"><div className="bg-blue-100 p-4 rounded-full"><Icons.Upload size={48} className="text-blue-600"/></div></div>
-                        <h1 className="text-2xl font-bold text-slate-800 mb-2">Finansal Veri Yükleme</h1>
-                        <p className="text-slate-500 mb-8">Lütfen analiz etmek istediğiniz dosyaları yükleyiniz.</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 hover:bg-blue-50 transition"><h3 className="font-bold text-slate-700 mb-2">1. Fiili Veri</h3><label className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 block text-center text-sm"><input type="file" hidden onChange={(e)=>handleFileUpload(e, 'actual')}/>CSV Seç</label></div>
-                            <div className="border-2 border-dashed border-purple-200 rounded-xl p-6 hover:bg-purple-50 transition"><h3 className="font-bold text-slate-700 mb-2">2. Bütçe Verisi</h3><label className="bg-purple-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-purple-700 block text-center text-sm"><input type="file" hidden onChange={(e)=>handleFileUpload(e, 'budget')}/>CSV Seç</label></div>
-                        </div>
-                    </div>
-                </div>
-            );
+            if (!isRechartsReady) return <div className="flex h-screen items-center justify-center">Yükleniyor...</div>;
+            const { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = window.Recharts;
 
             return (
-                <div ref={dashboardRef} className={`min-h-screen ${THEME.bg} p-6 font-sans text-slate-800`}>
-                    {/* Header */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <div><h1 className="text-xl font-bold flex items-center gap-2 text-slate-800"><Icons.TrendingUp className="text-blue-600"/> Finansal Yönetim Paneli</h1><p className="text-xs text-slate-500 mt-1">Kaynak: {fileName}</p></div>
-                            <div className="flex gap-2">
-                                <button onClick={() => setShowDataModal(true)} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition shadow-sm border border-slate-200"><Icons.Settings size={16}/> Veri İşlemleri</button>
-                                <button onClick={exportPDF} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition shadow-sm"><Icons.Printer size={16}/> PDF İndir</button>
+                <div className={`min-h-screen ${THEME.bg} p-6`}>
+                    {/* Dashboard Header */}
+                    <div className="max-w-7xl mx-auto space-y-6">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800">Finansal Yönetim Paneli</h2>
+                                <p className="text-slate-500 text-sm mt-1">{fileName || 'Lütfen CSV dosyası yükleyin'}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowDataModal(true)} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition border border-slate-200"><Icons.Settings size={18}/> Veri İşlemleri</button>
+                                <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition"><Icons.Printer size={18}/> Rapor Al</button>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Masraf Yeri</label><input list="masrafYerleri" className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none" placeholder="Tümü..." value={filterMasrafYeri} onChange={e=>setFilterMasrafYeri(e.target.value)} /><datalist id="masrafYerleri">{uniqueMasrafYerleri.map((val, i) => <option key={i} value={val} />)}</datalist></div>
-                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mizan</label><input list="mizanlar" className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none" placeholder="Tümü..." value={filterMizan} onChange={e=>setFilterMizan(e.target.value)} /><datalist id="mizanlar">{uniqueMizanlar.map((val, i) => <option key={i} value={val} />)}</datalist></div>
-                        </div>
+
+                        {data.length === 0 ? (
+                            <div className="bg-white p-20 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                                <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600"><Icons.Upload size={32}/></div>
+                                <h3 className="text-lg font-bold text-slate-700">Analize Başlamak İçin Veri Yükleyin</h3>
+                                <p className="text-slate-500 mb-6 max-w-sm mx-auto">Fiili harcama verilerinizi içeren CSV dosyasını sürükleyip bırakın veya seçin.</p>
+                                <label className="bg-blue-600 text-white px-6 py-3 rounded-xl cursor-pointer hover:bg-blue-700 transition font-medium inline-block">
+                                    <input type="file" hidden onChange={(e)=>handleFileUpload(e, 'actual')}/> CSV Dosyası Seç
+                                </label>
+                            </div>
+                        ) : (
+                            <div className="space-y-6 animate-fadeIn">
+                                {/* Grafik ve Tablo Alanı Buraya Gelecek */}
+                                <div className={`${THEME.card} p-8 h-96`}>
+                                    <ResponsiveContainer>
+                                        <ComposedChart data={DISPLAY_MONTHS.map(m => ({ name: m, actual: data.reduce((acc, r) => acc + (r.monthlyData[m] || 0), 0) }))}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                            <YAxis axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                                            <Tooltip />
+                                            <Bar dataKey="actual" name="Fiili" fill="#3b82f6" radius={[4,4,0,0]} barSize={30} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* DATA MODAL */}
+                    {/* Veri Modal */}
                     {showDataModal && (
                         <div className="modal-overlay" onClick={() => setShowDataModal(false)}>
-                            <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
-                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Settings size={20}/> Veri Yönetimi</h2>
+                            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+                                <h3 className="text-xl font-bold mb-6">Veri Yönetimi</h3>
                                 <div className="space-y-4">
-                                    <div className="p-4 border rounded-lg bg-purple-50 border-purple-100">
-                                        <h3 className="font-bold text-purple-800 mb-2 text-sm">Bütçe Verisi Ekle</h3>
-                                        <label className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-purple-700 text-sm justify-center w-full"><input type="file" hidden onChange={(e)=>handleFileUpload(e, 'budget')}/><Icons.Upload size={16}/> Bütçe CSV Seç</label>
-                                        {budgetData.length > 0 && <div className="text-xs text-green-600 mt-2 text-center">✓ {budgetData.length} satır bütçe verisi yüklü</div>}
+                                    <div className="p-4 border rounded-xl bg-blue-50 border-blue-100 text-center">
+                                        <p className="text-sm font-bold text-blue-800 mb-3">Fiili Veri (Actual)</p>
+                                        <input type="file" onChange={(e)=>handleFileUpload(e, 'actual')} className="text-xs"/>
                                     </div>
-                                    <button onClick={() => { setData([]); setBudgetData([]); setShowDataModal(false); }} className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 border border-red-200 px-4 py-3 rounded-lg hover:bg-red-100 text-sm font-bold"><Icons.Trash size={16}/> Tüm Verileri Sıfırla & Çıkış</button>
+                                    <div className="p-4 border rounded-xl bg-purple-50 border-purple-100 text-center">
+                                        <p className="text-sm font-bold text-purple-800 mb-3">Bütçe Verisi (Budget)</p>
+                                        <input type="file" onChange={(e)=>handleFileUpload(e, 'budget')} className="text-xs"/>
+                                    </div>
                                 </div>
-                                <button onClick={() => setShowDataModal(false)} className="mt-4 w-full text-slate-500 text-sm hover:text-slate-700">Kapat</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* AI MODAL */}
-                    {showAIModal && (
-                        <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
-                            <div className="expand-modal max-w-3xl h-[80vh]" onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-white">
-                                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Icons.Sparkles className="text-purple-600"/> Akıllı Finansal Asistan</h2>
-                                    <button onClick={() => setShowAIModal(false)} className="text-slate-400 hover:text-slate-600"><Icons.Minimize size={20}/></button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
-                                    {aiMessages.length === 0 && (
-                                        <div className="text-center py-10 text-slate-500">
-                                            <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.Sparkles size={32} className="text-purple-600"/></div>
-                                            <p className="mb-4 font-medium">Finansal verilerinizi analiz etmem için bir komut verin:</p>
-                                            <button onClick={generateAIAnalysis} className="bg-white border border-purple-200 text-purple-700 px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition font-medium">✨ Otomatik Yönetici Özeti Oluştur</button>
-                                        </div>
-                                    )}
-                                    {aiMessages.map((msg, i) => (
-                                        <div key={i} className={`ai-message ${msg.role === 'user' ? 'user' : 'bot'}`}>
-                                            {msg.role === 'bot' ? <div dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }} /> : msg.text}
-                                        </div>
-                                    ))}
-                                    {isAiThinking && <div className="ai-message bot typing-indicator"><span></span><span></span><span></span></div>}
-                                    <div ref={chatEndRef} />
-                                </div>
-                                <form onSubmit={handleChatSubmit} className="p-4 bg-white border-t border-slate-100 flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        value={aiInput} 
-                                        onChange={(e) => setAiInput(e.target.value)} 
-                                        placeholder="Veriler hakkında bir soru sorun (Örn: En yüksek bütçe sapması nerede?)" 
-                                        className="flex-1 border border-slate-200 rounded-lg px-4 py-2 outline-none focus:border-purple-500 transition"
-                                    />
-                                    <button type="submit" className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50" disabled={isAiThinking || !apiKey}><Icons.Send size={20}/></button>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* EXPAND MODAL */}
-                    {expandedCardId && (
-                        <div className="modal-overlay" onClick={() => setExpandedCardId(null)}>
-                            <div className="expand-modal" onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-end p-4"><button onClick={() => setExpandedCardId(null)} className="p-2 hover:bg-slate-100 rounded-full"><Icons.Minimize size={24} className="text-slate-500"/></button></div>
-                                {renderExpandedContent()}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* GLOBAL KPI CARDS (TOP LEVEL) */}
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                        <KPICard title="Toplam Fiili (YTD)" value={`${kpiSummary.totalActual.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺`} icon={<Icons.Activity/>} border="border-l-blue-500" onExpand={() => setExpandedCardId('actual')} />
-                        <KPICard title="Toplam Bütçe" value={`${kpiSummary.totalBudget.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺`} border="border-l-purple-500" onExpand={() => setExpandedCardId('budget')} />
-                        <KPICard title="Yıl Sonu Tahmini" value={`${kpiSummary.yearEnd.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺`} border="border-l-indigo-500" onExpand={() => setExpandedCardId('forecast')} />
-                        <KPICard title="Bütçe Aşımları" value={<span className="text-red-600">+{budgetDeviations.overruns.reduce((a,b)=>a+b.diff,0).toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</span>} border="border-l-red-500" onExpand={() => setExpandedCardId('overrun')} />
-                        <KPICard title="Bütçe Tasarrufları" value={<span className="text-green-600">{budgetDeviations.savings.reduce((a,b)=>a+b.diff,0).toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</span>} border="border-l-green-500" onExpand={() => setExpandedCardId('saving')} />
-                    </div>
-
-                    <div className="flex mb-4 border-b border-slate-200 gap-1">{['dashboard','detail','audit'].map(t => (<button key={t} onClick={()=>setActiveTab(t)} className={`px-4 py-2 text-sm font-medium rounded-t-lg ${activeTab===t ? 'bg-white text-blue-600 border-x border-t border-slate-200' : 'text-slate-500 hover:bg-slate-100'}`}>{t==='dashboard'?'Özet':t==='detail'?'Detaylı Liste':<span className="flex items-center gap-2">Kontrol Merkezi <span className="bg-red-100 text-red-600 px-1.5 rounded-full text-xs">{groupedAnomalyData.length}</span></span>}</button>))}</div>
-
-                    {activeTab === 'dashboard' && (
-                        <div className="tab-content space-y-6">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                                <div className={`${THEME.card} p-6 lg:col-span-3`}>
-                                    <div className="h-96"><ResponsiveContainer><ComposedChart data={chartData.monthlyTrend}><defs><linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3}/></linearGradient><linearGradient id="colorBudget" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.3}/></linearGradient><pattern id="patternForecast" patternUnits="userSpaceOnUse" width="4" height="4"><path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{stroke:'#94a3b8', strokeWidth:1}} /></pattern></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0"/><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}}/><YAxis axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000000).toFixed(1)}M`} width={60} tick={{fill: '#64748b'}}/><Tooltip content={<CustomTooltip />} cursor={{fill: '#f1f5f9'}} /><Legend verticalAlign="top" height={36}/><Bar name="Bütçe" dataKey="budget" fill="url(#colorBudget)" radius={[4,4,0,0]} barSize={20} /><Bar name="Fiili" dataKey="actual" radius={[4,4,0,0]} barSize={20}>{chartData.monthlyTrend.map((e,i)=>(<Cell key={i} fill={e.isForecast ? 'url(#patternForecast)' : 'url(#colorActual)'} opacity={e.isForecast?0.5:1} />))}</Bar><Line type="monotone" name="Trend" dataKey="actual" stroke="#f97316" strokeWidth={3} dot={false} activeDot={{r: 6}} strokeDasharray="5 5" /></ComposedChart></ResponsiveContainer></div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <KPICard title="Kayıt Sayısı" value={tableDisplayData.length} border="border-l-emerald-500" onExpand={() => setExpandedCardId('kpi-count')} />
-                                <div className={`${THEME.card} p-4 border-l-4 border-l-blue-500 flex flex-col justify-between`}><div><div className="text-xs text-slate-400 uppercase font-bold mb-1">{selectedMonth ? `${selectedMonth} Tutarı` : 'Toplam Tutar'}</div><div className="text-2xl font-bold">{selectedMonth ? chartData.monthlyTrend.find(m=>m.name===selectedMonth)?.value.toLocaleString('tr-TR',{maximumFractionDigits:0}) : filteredData.reduce((acc,c)=>acc+c.toplam2025,0).toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</div></div><div className="h-6 mt-1">{selectedMonth && kpiTrend && kpiTrend.direction !== 'none' && (<div className={`flex items-center text-xs font-medium ${kpiTrend.direction==='up'?'text-red-600':'text-green-600'}`}>{kpiTrend.direction==='up' ? <Icons.TrendingUp size={14} className="mr-1"/> : <Icons.TrendingDown size={14} className="mr-1"/>}%{kpiTrend.percent} {kpiTrend.direction==='up'?'Artış':'Azalış'} ({kpiTrend.text})</div>)}</div></div>
-                                <KPICard title="En Yüksek Ay" value={topMonth.name} subtext={<span className="text-orange-600 font-bold">{topMonth.value.toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</span>} border="border-l-orange-500" onExpand={() => setExpandedCardId('kpi-peak')} />
-                                <KPICard title="Ortalama/Ay" value={`${(filteredData.reduce((acc,c)=>acc+c.toplam2025,0)/12).toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺`} border="border-l-indigo-500" onExpand={() => setExpandedCardId('kpi-avg')} />
-                            </div>
-                            
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <div className={`${THEME.card} p-6`}><h3 className="font-bold text-slate-700 mb-4">Masraf Dağılımı</h3><div className="h-64"><ResponsiveContainer><PieChart><Pie data={chartData.pieData} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value" labelLine={true} label={({ name, percent, value }) => `${formatMoney(value)} ₺ (%${(percent * 100).toFixed(1)})`}>{chartData.pieData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}</Pie><Tooltip formatter={v=>v.toLocaleString('tr-TR')+' ₺'} contentStyle={{borderRadius:'8px', border:'none', boxShadow:'0 4px 6px -1px rgba(0,0,0,0.1)'}}/><Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '11px', overflowY: 'auto', maxHeight: '200px'}}/></PieChart></ResponsiveContainer></div></div>
-                                
-                                <div className={`${THEME.card} p-6 overflow-hidden`}><h3 className="font-bold text-slate-700 mb-4">En Yüksek 5 Masraf Yeri</h3><div className="overflow-auto max-h-64"><table className="w-full text-sm text-left"><tbody>{top5Expenses.map((item, idx) => (<React.Fragment key={idx}><tr className="border-b last:border-0 border-slate-100 clickable-row" onClick={() => setExpandedTopExpense(expandedTopExpense === item.name ? null : item.name)}><td className="py-3 text-slate-600 truncate max-w-[150px] flex items-center gap-2">{expandedTopExpense === item.name ? <Icons.ChevronUp size={12}/> : <Icons.ChevronDown size={12}/>}<span title={item.name}>{item.name}</span></td><td className="py-3 text-right font-bold text-slate-700">{item.value.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</td></tr>{expandedTopExpense === item.name && (<tr className="detail-row"><td colSpan="2" className="p-3"><div className="text-xs text-slate-500 font-bold mb-2">HARCAMA DETAYI (MİZAN):</div><div className="space-y-1">{getBreakdown('mizanAdi', 'masrafYeriAdi', item.name).map((sub, i) => (<div key={i} className="flex justify-between text-xs"><span className="text-slate-600 truncate max-w-[150px]" title={sub.name}>{sub.name}</span><span className="font-mono text-slate-800">{sub.value.toLocaleString('tr-TR')} ₺</span></div>))}</div></td></tr>)}</React.Fragment>))}</tbody></table></div></div>
-                                
-                                <div className={`${THEME.card} p-6 overflow-hidden`}><h3 className="font-bold text-slate-700 mb-4">En Yüksek 5 Mizan Kalemi</h3><div className="overflow-auto max-h-64"><table className="w-full text-sm text-left"><tbody>{top5Mizan.map((item, idx) => (<React.Fragment key={idx}><tr className="border-b last:border-0 border-slate-100 clickable-row" onClick={() => setExpandedTopMizan(expandedTopMizan === item.name ? null : item.name)}><td className="py-3 text-slate-600 flex items-center gap-2">{expandedTopMizan === item.name ? <Icons.ChevronUp size={12}/> : <Icons.ChevronDown size={12}/>}<div className="truncate max-w-[150px]"><div title={item.name}>{item.name}</div>{item.code && <div className="text-xs text-slate-400 font-mono">{item.code}</div>}</div></td><td className="py-3 text-right font-bold text-slate-700">{item.value.toLocaleString('tr-TR', {maximumFractionDigits:0})} ₺</td></tr>{expandedTopMizan === item.name && (<tr className="detail-row"><td colSpan="2" className="p-3"><div className="text-xs text-slate-500 font-bold mb-2">EN YÜKSEK ŞUBELER:</div><div className="space-y-1">{getBreakdown('masrafYeriAdi', 'mizanAdi', item.name).map((sub, i) => (<div key={i} className="flex justify-between text-xs"><span className="text-slate-600 truncate max-w-[150px]" title={sub.name}>{sub.name}</span><span className="font-mono text-slate-800">{sub.value.toLocaleString('tr-TR')} ₺</span></div>))}</div></td></tr>)}</React.Fragment>))}</tbody></table></div></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'detail' && (
-                        <div className={`${THEME.card} flex flex-col h-[600px] tab-content`}>
-                            <div className="p-4 border-b flex justify-between items-center"><div className="font-bold text-sm text-slate-700">Detaylı Liste</div><div className="flex gap-2"><button onClick={()=>handleExport(tableDisplayData)} className="flex items-center gap-1 text-xs bg-white border px-3 py-2 rounded hover:bg-slate-50"><Icons.Download size={14}/> CSV İndir</button><div className="relative"><input className="pl-8 pr-2 py-1.5 border rounded text-sm w-48" placeholder="Ara..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/><Icons.Search className="absolute left-2 top-2 text-slate-400" size={14}/></div></div></div>
-                            <div className="flex-1 overflow-auto custom-scrollbar"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 sticky top-0 z-10 text-xs uppercase font-bold text-slate-500"><tr><th className="px-4 py-3">Direktörlük</th><th className="px-4 py-3">Masraf Yeri</th><th className="px-4 py-3">Mizan</th><th className="px-4 py-3">Sorumlu</th>{DISPLAY_MONTHS.map(m=><th key={m} className="px-2 py-3 text-right">{m}</th>)}<th className="px-4 py-3 text-right">Top.</th></tr></thead><tbody className="divide-y divide-slate-100">{tableDisplayData.map(r => (<tr key={r.id} className="hover:bg-slate-50"><td className="px-4 py-2 font-medium">{r.direktorluk}</td><td className="px-4 py-2 truncate max-w-xs" title={r.masrafYeriTam}> {r.masrafYeriKodu && <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1 rounded mr-1">{r.masrafYeriKodu}</span>} {r.masrafYeriAdi} </td><td className="px-4 py-2 truncate max-w-xs" title={r.mizanTam}> {r.mizanKodu && <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1 rounded mr-1">{r.mizanKodu}</span>} {r.mizanAdi} </td><td className="px-4 py-2">{r.butceSorumlusu}</td>{DISPLAY_MONTHS.map(m=><td key={m} className={`px-2 py-2 text-right font-mono text-xs ${selectedMonth===m?'bg-amber-50 font-bold':''}`}>{r.monthlyData[m]?.toLocaleString('tr-TR',{maximumFractionDigits:0})||'-'}</td>)}<td className="px-4 py-2 text-right font-bold">{r.toplam2025.toLocaleString('tr-TR',{maximumFractionDigits:0})}</td></tr>))}</tbody></table></div>
-                        </div>
-                    )}
-
-                    {activeTab === 'audit' && (
-                        <div className={`${THEME.card} flex flex-col h-[600px] tab-content border-t-4 border-red-500`}>
-                            <div className="p-4 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 bg-red-50">
-                                <div className="flex items-center gap-2 text-red-700 font-bold"><Icons.AlertTriangle size={20}/> Kontrol Merkezi</div>
-                                <div className="flex items-center gap-4 text-sm"><div className="flex items-center gap-2 bg-white px-3 py-1 rounded border border-red-200"><span className="text-slate-500 text-xs uppercase font-bold">Sapma Limiti:</span><input type="number" value={auditThreshold} onChange={e=>setAuditThreshold(Number(e.target.value))} className="w-20 text-right font-mono outline-none text-slate-700"/> <span className="text-slate-400">TL</span></div><div className="flex items-center gap-2 bg-white px-3 py-1 rounded border border-red-200"><span className="text-slate-500 text-xs uppercase font-bold">Değişim:</span><input type="number" value={auditPercent} onChange={e=>setAuditPercent(Number(e.target.value))} className="w-12 text-right font-mono outline-none text-slate-700"/> <span className="text-slate-400">%</span></div><button onClick={()=>handleExport(groupedAnomalyData)} className="text-xs bg-white border border-red-200 text-red-600 px-3 py-1.5 rounded hover:bg-red-100 flex gap-1"><Icons.Download size={14}/> İndir</button></div>
-                            </div>
-                            <div className="flex-1 overflow-auto custom-scrollbar">
-                                {groupedAnomalyData.length===0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Icons.Activity size={48} className="mb-2 opacity-20"/><p>Kriterlere uygun anormallik bulunamadı.</p></div> : 
-                                <table className="w-full text-sm text-left"><thead className="bg-slate-50 sticky top-0 font-bold text-xs uppercase text-slate-500"><tr><th className="px-6 py-3 w-10"></th><th className="px-6 py-3">Excel Satır No</th><th className="px-6 py-3">Durum</th><th className="px-6 py-3">Masraf Yeri (Kod - Ad)</th><th className="px-6 py-3">Mizan (Kod - Ad)</th></tr></thead><tbody className="divide-y divide-slate-100">{groupedAnomalyData.map((group) => { const hasSignFlip = group.anomalies.some(a => a.type === 'SIGN_FLIP'); return (<React.Fragment key={group.id}><tr className="hover:bg-red-50 cursor-pointer" onClick={() => toggleRow(group.id)}><td className="px-6 py-4 text-center text-slate-400">{expandedRows[group.id] ? <Icons.ChevronUp size={16}/> : <Icons.ChevronDown size={16}/>}</td><td className="px-6 py-4 font-mono font-bold text-slate-500">{group.id + 1}</td><td className="px-6 py-4"><span className={`px-2 py-1 rounded text-xs font-bold border ${hasSignFlip ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{group.anomalies.length} Tespit</span></td><td className="px-6 py-4">{group.masrafYeriKodu && <span className="font-mono text-xs bg-slate-100 px-1 rounded mr-1">{group.masrafYeriKodu}</span>} {group.masrafYeriAdi}</td><td className="px-6 py-4">{group.mizanKodu && <span className="font-mono text-xs bg-slate-100 px-1 rounded mr-1">{group.mizanKodu}</span>} {group.mizanAdi}</td></tr>{expandedRows[group.id] && (<tr className="bg-slate-50"><td colSpan="5" className="px-6 py-4"><div className="border border-slate-200 rounded-lg bg-white overflow-hidden"><table className="w-full text-xs"><thead className="bg-slate-100 text-slate-500 uppercase"><tr><th className="px-4 py-2">Ay</th><th className="px-4 py-2">Tip</th><th className="px-4 py-2">Tutar</th><th className="px-4 py-2">Açıklama</th></tr></thead><tbody>{group.anomalies.map((ano, idx) => (<tr key={idx} className="border-b last:border-0 border-slate-100"><td className="px-4 py-2 font-bold">{ano.month}</td><td className="px-4 py-2"><span className={`px-1.5 py-0.5 rounded ${ano.type==='SIGN_FLIP'?'bg-orange-100 text-orange-700':'bg-blue-100 text-blue-700'}`}>{ano.type==='SIGN_FLIP'?'İşaret Değişimi':'Sapma'}</span></td><td className="px-4 py-2 font-mono">{ano.val.toLocaleString('tr-TR')} ₺</td><td className="px-4 py-2 text-slate-600">{ano.desc}</td></tr>))}</tbody></table></div></td></tr>)}</React.Fragment>)})}</tbody></table>}
+                                <button onClick={() => setShowDataModal(false)} className="mt-8 w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition">Kapat</button>
                             </div>
                         </div>
                     )}
