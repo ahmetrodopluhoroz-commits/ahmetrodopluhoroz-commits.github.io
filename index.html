@@ -1,48 +1,25 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Deneme Sayfası</title>
-
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.10.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.10.1/core.js"></script>
+    <title>PyScript Hızlı Test</title>
 </head>
-<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-6">
+<body style="background-color: #1a202c; color: white; padding: 20px;">
 
-    <div class="max-w-2xl w-full bg-slate-800 p-10 rounded-3xl shadow-2xl border border-slate-700">
-        <h1 class="text-3xl font-bold mb-4 text-emerald-400">PyScript Test Paneli</h1>
-        <p class="text-slate-400 mb-8 font-mono text-sm"># Sunucusuz Python Çalıştırma Ortamı</p>
-
-        <div id="py-output" class="bg-black p-6 rounded-xl font-mono text-emerald-500 border border-slate-900 min-h-[200px] whitespace-pre-wrap">
-            <p class="text-slate-700 italic"># Python yükleniyor, lütfen bekleyin...</p>
-        </div>
-
-        <script type="py" target="py-output">
-import sys
-from datetime import datetime
-
-# Ekrana yazı yazdırma
-print("-" * 30)
-print(f"BAŞARILI: Python tarayıcıda çalışıyor!")
-print(f"Zaman: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
-print(f"Python Sürümü: {sys.version.split()[0]}")
-print("-" * 30)
-
-# Basit bir döngü örneği
-print("\nSayı Sayma Denemesi:")
-for i in range(1, 6):
-    print(f"Adım {i} tamamlandı.")
-
-print("\n[Kod Sonu]")
-        </script>
-
-        <div class="mt-8 text-xs text-slate-500 text-center">
-            Sayfayı yenilediğinizde Python VM yeniden kurulur (3-5 sn sürebilir).
-        </div>
+    <h2>PyScript Durumu:</h2>
+    <div id="output" style="border: 1px solid #4a5568; padding: 10px; font-family: monospace;">
+        Python yükleniyor, lütfen bekleyin...
     </div>
+
+    <script type="py">
+        from pyscript import display
+        import sys
+
+        display("✅ Python Başarıyla Başlatıldı!", target="output", append=False)
+        display(f"Sürüm: {sys.version}", target="output", append=True)
+    </script>
 
 </body>
 </html>
