@@ -3,204 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Veri Araçları Paneli</title>
+    <title>Profesyonel Veri & Dosya Paneli</title>
 
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.10.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.10.1/core.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <py-config>
-        packages = ["pandas", "openpyxl", "lxml", "beautifulsoup4"]
+        packages = ["pandas", "openpyxl", "lxml", "beautifulsoup4", "pypdf"]
     </py-config>
 
     <style>
         .tool-card { display: none; }
         .tool-card.active { display: block; }
-        .nav-btn.active { border-bottom: 3px solid #10b981; color: #10b981; }
+        .nav-btn.active { border-bottom: 3px solid #10b981; color: #10b981; font-weight: bold; }
+        /* Pandas ve sistem uyarılarını (terminal) tamamen gizler */
+        py-terminal { display: none !important; }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen font-sans">
 
-    <nav class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50 shadow-xl">
+    <nav class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50 shadow-2xl">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-emerald-500 p-2 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <span class="text-xl font-bold tracking-tight">Veri<span class="text-emerald-400">Asistanı</span></span>
+            <div class="flex items-center gap-2">
+                <span class="text-xl font-bold text-emerald-400">Dosya<span class="text-white font-light">Asistanı</span></span>
             </div>
-            <div class="flex gap-6">
-                <button onclick="switchTab('merger')" id="btn-merger" class="nav-btn active px-3 py-2 font-medium transition-all">Excel Birleştirici</button>
-                <button onclick="switchTab('converter')" id="btn-converter" class="nav-btn px-3 py-2 font-medium transition-all text-slate-400 hover:text-emerald-400">CSV Dönüştürücü</button>
+            <div class="flex gap-4 overflow-x-auto no-scrollbar">
+                <button onclick="switchTab('merger')" id="btn-merger" class="nav-btn active px-3 py-2 text-sm transition-all">Excel Birleştir</button>
+                <button onclick="switchTab('converter')" id="btn-converter" class="nav-btn px-3 py-2 text-sm text-slate-400 transition-all">CSV Yap</button>
+                <button onclick="switchTab('pdf')" id="btn-pdf" class="nav-btn px-3 py-2 text-sm text-slate-400 transition-all text-red-400">PDF Birleştir</button>
+                <button onclick="switchTab('cleaner')" id="btn-cleaner" class="nav-btn px-3 py-2 text-sm text-slate-400 transition-all">Temizle</button>
+                <button onclick="switchTab('sqlgen')" id="btn-sqlgen" class="nav-btn px-3 py-2 text-sm text-slate-400 transition-all">SQL Üret</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto py-12 px-6">
+    <main class="max-w-4xl mx-auto py-10 px-6">
         
-        <div id="merger-tool" class="tool-card active animate-fade-in">
-            <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl">
+        <div id="pdf-tool" class="tool-card">
+            <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-xl">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="bg-red-500/20 p-3 rounded-2xl text-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-red-400">PDF Birleştirici</h2>
+                        <p class="text-slate-400 text-sm">Birden fazla PDF dosyasını seçin, tek bir dosya haline getirelim.</p>
+                    </div>
+                </div>
+                <input type="file" id="f_pdf" multiple accept=".pdf" class="mb-6 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 cursor-pointer">
+                <button py-click="pdf_birlestir" class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-xl font-bold text-lg shadow-lg transition-all active:scale-95">PDF'leri Birleştir ve İndir</button>
+            </div>
+        </div>
+
+        <div id="merger-tool" class="tool-card active">
+             <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700">
                 <h2 class="text-2xl font-bold mb-2 text-emerald-400">Excel Birleştirici</h2>
-                <p class="text-slate-400 mb-8">Birden fazla Excel dosyasını seçin, başlıkları koruyarak tek bir Excel dosyasında birleştirelim.</p>
-                
-                <div class="space-y-6">
-                    <div class="border-2 border-dashed border-slate-600 rounded-2xl p-10 text-center hover:border-emerald-500 transition-all bg-slate-800/50">
-                        <input type="file" id="files_merger" multiple accept=".xlsx, .xls" class="hidden" onchange="updateFileList('merger')">
-                        <label for="files_merger" class="cursor-pointer group">
-                            <div class="text-slate-300 text-lg group-hover:text-emerald-400 mb-2">📂 Dosyaları Seçin</div>
-                            <div id="list_merger" class="text-sm text-slate-500 italic">Henüz dosya seçilmedi</div>
-                        </label>
-                    </div>
-                    <button py-click="excel_birlestir" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold text-lg shadow-lg transform active:scale-95 transition-all">
-                        Birleştir ve Excel İndir
-                    </button>
-                </div>
+                <input type="file" id="f_merger" multiple accept=".xlsx, .xls" class="mb-6 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-emerald-600 file:text-white">
+                <button py-click="excel_birlestir" class="w-full bg-emerald-600 py-4 rounded-xl font-bold text-lg">Excel Birleştir</button>
             </div>
         </div>
 
-        <div id="converter-tool" class="tool-card animate-fade-in">
-            <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl">
-                <h2 class="text-2xl font-bold mb-2 text-blue-400">Excel/HTML to CSV</h2>
-                <p class="text-slate-400 mb-8">Excel veya HTML tablolarını birleştirip Türkçe karakter uyumlu (UTF-8 BOM) CSV dosyasına dönüştürün.</p>
-                
-                <div class="space-y-6">
-                    <div class="border-2 border-dashed border-slate-600 rounded-2xl p-10 text-center hover:border-blue-500 transition-all bg-slate-800/50">
-                        <input type="file" id="files_converter" multiple accept=".xlsx, .xls, .html, .htm" class="hidden" onchange="updateFileList('converter')">
-                        <label for="files_converter" class="cursor-pointer group">
-                            <div class="text-slate-300 text-lg group-hover:text-blue-400 mb-2">📂 Dosyaları Seçin (.xlsx, .html)</div>
-                            <div id="list_converter" class="text-sm text-slate-500 italic">Henüz dosya seçilmedi</div>
-                        </label>
-                    </div>
-                    <button py-click="csv_donustur" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold text-lg shadow-lg transform active:scale-95 transition-all">
-                        Birleştir ve CSV İndir
-                    </button>
-                </div>
+        <div id="converter-tool" class="tool-card">
+            <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700">
+                <h2 class="text-2xl font-bold mb-2 text-blue-400">CSV Dönüştürücü</h2>
+                <input type="file" id="f_converter" multiple accept=".xlsx, .xls, .html" class="mb-6 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-600 file:text-white">
+                <button py-click="csv_donustur" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg">CSV Olarak İndir</button>
             </div>
         </div>
 
-        <div id="status_msg" class="mt-8 text-center font-mono text-sm text-slate-500">
-            # Sistem Hazır (Python 3.12)
+        <div id="cleaner-tool" class="tool-card">
+            <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700">
+                <h2 class="text-2xl font-bold mb-2 text-amber-400">Veri Temizleyici</h2>
+                <input type="file" id="f_cleaner" accept=".xlsx" class="mb-6 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-amber-600 file:text-white">
+                <button py-click="veri_temizle" class="w-full bg-amber-600 py-4 rounded-xl font-bold text-lg">Temizle ve İndir</button>
+            </div>
         </div>
 
+        <div id="sqlgen-tool" class="tool-card">
+            <div class="bg-slate-800 rounded-3xl p-8 border border-slate-700">
+                <h2 class="text-2xl font-bold mb-2 text-purple-400">SQL Üretici</h2>
+                <input type="text" id="sql_table" placeholder="Tablo Adı..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 mb-4 outline-none">
+                <input type="file" id="f_sql" accept=".xlsx" class="mb-6 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-purple-600 file:text-white">
+                <button py-click="sql_uret" class="w-full bg-purple-600 py-4 rounded-xl font-bold text-lg">SQL Script İndir</button>
+            </div>
+        </div>
+
+        <div id="status_msg" class="mt-8 text-center font-mono text-sm text-slate-500"># Hazır</div>
     </main>
 
     <script>
-        // Tab geçiş mekanizması
         function switchTab(tab) {
             document.querySelectorAll('.tool-card').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'text-emerald-400', 'text-blue-400'));
-            
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'text-white'));
             document.getElementById(tab + '-tool').classList.add('active');
-            const btn = document.getElementById('btn-' + tab);
-            btn.classList.add('active');
-            if(tab === 'converter') btn.classList.add('text-blue-400');
-            else btn.classList.add('text-emerald-400');
-        }
-
-        // Dosya listesi güncelleme
-        function updateFileList(type) {
-            const input = document.getElementById('files_' + type);
-            const list = document.getElementById('list_' + type);
-            const names = Array.from(input.files).map(f => f.name).join(", ");
-            list.innerText = names ? names : "Henüz dosya seçilmedi";
+            document.getElementById('btn-' + tab).classList.add('active', 'text-white');
         }
     </script>
 
     <script type="py">
         import pandas as pd
         import io
+        import warnings
+        from pypdf import PdfWriter
         from pyscript import display, document
         from js import Uint8Array, File, URL, document as js_document
 
-        async def get_files(input_id):
-            files = document.querySelector(f"#{input_id}").files
-            if not files:
-                return None
-            return files
+        # Uyarıları kapat
+        warnings.filterwarnings("ignore")
 
-        def download_file(content, filename, file_type):
+        # --- YARDIMCI FONKSİYON: İNDİRME ---
+        def download_file(content, filename, m_type):
             js_array = Uint8Array.new(len(content))
             js_array.assign(content)
-            blob = js_document.defaultView.Blob.new([js_array], { "type": file_type })
+            blob = js_document.defaultView.Blob.new([js_array], { "type": m_type })
             url = URL.createObjectURL(blob)
             link = js_document.createElement("a")
             link.href = url
             link.download = filename
             link.click()
 
-        # FONKSİYON 1: EXCEL BİRLEŞTİRİCİ
-        async def excel_birlestir(event):
-            status = document.querySelector("#status_msg")
-            files = await get_files("files_merger")
+        # --- PDF BİRLEŞTİRİCİ ---
+        async def pdf_birlestir(e):
+            st = document.querySelector("#status_msg")
+            files = document.querySelector("#f_pdf").files
             if not files:
-                status.innerText = "❌ Hata: Lütfen dosya seçin!"
+                st.innerText = "⚠️ Lütfen PDF dosyalarını seçin!"
                 return
-
-            status.innerText = "⏳ Excel dosyaları birleştiriliyor..."
+            
+            st.innerText = "⏳ PDF'ler birleştiriliyor..."
             try:
-                dfs = []
-                for file in files:
-                    buf = await file.arrayBuffer()
-                    df = pd.read_excel(io.BytesIO(Uint8Array.new(buf).to_py()))
-                    dfs.append(df)
+                merger = PdfWriter()
+                for f in files:
+                    buf = await f.arrayBuffer()
+                    stream = io.BytesIO(Uint8Array.new(buf).to_py())
+                    merger.append(stream)
                 
-                final_df = pd.concat(dfs, ignore_index=True)
                 output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    final_df.to_excel(writer, index=False)
-                
-                download_file(output.getvalue(), "birlesmis_excel.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                status.innerText = "✅ Excel hazır ve indirildi!"
-            except Exception as e:
-                status.innerText = f"❌ Hata: {str(e)}"
+                merger.write(output)
+                download_file(output.getvalue(), "birlesmis_dosya.pdf", "application/pdf")
+                st.innerText = f"✅ {len(files)} adet PDF birleştirildi!"
+            except Exception as ex:
+                st.innerText = f"❌ Hata: {ex}"
 
-        # FONKSİYON 2: CSV DÖNÜŞTÜRÜCÜ (TKINTER MANTIĞI)
-        async def csv_donustur(event):
-            status = document.querySelector("#status_msg")
-            files = await get_files("files_converter")
-            if not files:
-                status.innerText = "❌ Hata: Lütfen dosya seçin!"
-                return
-
-            status.innerText = "⏳ CSV'ye dönüştürülüyor (HTML/Excel kontrol ediliyor)..."
+        # --- EXCEL BİRLEŞTİRİCİ ---
+        async def excel_birlestir(e):
+            st = document.querySelector("#status_msg")
+            files = document.querySelector("#f_merger").files
+            if not files: return
+            st.innerText = "⏳ Excel işleniyor..."
             try:
-                all_dfs = []
-                for file in files:
-                    buf = await file.arrayBuffer()
-                    data_bytes = Uint8Array.new(buf).to_py()
-                    file_io = io.BytesIO(data_bytes)
-                    
-                    df = None
-                    # 1. Excel olarak dene
-                    try:
-                        df = pd.read_excel(file_io)
-                    except:
-                        # 2. HTML olarak dene (Tkinter kodundaki mantık)
-                        try:
-                            file_io.seek(0)
-                            # HTML okumak için string'e çeviriyoruz
-                            html_content = data_bytes.decode('utf-8', errors='ignore')
-                            df_list = pd.read_html(io.StringIO(html_content))
-                            if df_list:
-                                df = df_list[0]
-                        except Exception as html_e:
-                            print(f"HTML okuma hatası: {html_e}")
+                dfs = [pd.read_excel(io.BytesIO(Uint8Array.new(await f.arrayBuffer()).to_py())) for f in files]
+                out = io.BytesIO()
+                pd.concat(dfs, ignore_index=True).to_excel(out, index=False)
+                download_file(out.getvalue(), "excel_birlesik.xlsx", "application/vnd.ms-excel")
+                st.innerText = "✅ Excel hazır!"
+            except Exception as ex: st.innerText = f"❌ Hata: {ex}"
 
-                    if df is not None:
-                        all_dfs.append(df)
+        # --- CSV DÖNÜŞTÜRÜCÜ ---
+        async def csv_donustur(e):
+            st = document.querySelector("#status_msg")
+            files = document.querySelector("#f_converter").files
+            if not files: return
+            st.innerText = "⏳ CSV'ye dönüştürülüyor..."
+            all_dfs = []
+            for f in files:
+                b = Uint8Array.new(await f.arrayBuffer()).to_py()
+                try: df = pd.read_excel(io.BytesIO(b))
+                except: 
+                    try: df = pd.read_html(io.StringIO(b.decode('utf-8', errors='ignore')))[0]
+                    except: continue
+                all_dfs.append(df)
+            if all_dfs:
+                csv = pd.concat(all_dfs, ignore_index=True).to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+                download_file(csv, "veriler.csv", "text/csv")
+                st.innerText = "✅ CSV hazır!"
 
-                if all_dfs:
-                    merged_df = pd.concat(all_dfs, ignore_index=True, join='outer')
-                    # UTF-8 SIG (Türkçe karakter desteği için Tkinter'daki gibi)
-                    csv_data = merged_df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
-                    download_file(csv_data, "veriler_birlesmis.csv", "text/csv")
-                    status.innerText = "✅ CSV başarıyla oluşturuldu!"
-                else:
-                    status.innerText = "❌ Okunabilir tablo bulunamadı!"
-            except Exception as e:
-                status.innerText = f"❌ Hata: {str(e)}"
+        # --- VERİ TEMİZLEYİCİ ---
+        async def veri_temizle(e):
+            st = document.querySelector("#status_msg")
+            file = document.querySelector("#f_cleaner").files
+            if not file: return
+            st.innerText = "⏳ Temizleniyor..."
+            try:
+                df = pd.read_excel(io.BytesIO(Uint8Array.new(await file[0].arrayBuffer()).to_py()))
+                df = df.dropna(how='all').dropna(axis=1, how='all') # Boşları at
+                df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x) # Boşlukları kırp
+                out = io.BytesIO()
+                df.to_excel(out, index=False)
+                download_file(out.getvalue(), "temiz_veri.xlsx", "application/vnd.ms-excel")
+                st.innerText = "✅ Temizlendi!"
+            except Exception as ex: st.innerText = f"❌ Hata: {ex}"
+
+        # --- SQL ÜRETİCİ ---
+        async def sql_uret(e):
+            st = document.querySelector("#status_msg")
+            t_name = document.querySelector("#sql_table").value or "Tablo1"
+            file = document.querySelector("#f_sql").files
+            if not file: return
+            st.innerText = "⏳ SQL üretiliyor..."
+            try:
+                df = pd.read_excel(io.BytesIO(Uint8Array.new(await file[0].arrayBuffer()).to_py()))
+                sql_scripts = []
+                for _, row in df.iterrows():
+                    cols = ", ".join(df.columns)
+                    vals = ", ".join([f"'{str(v)}'" for v in row.values])
+                    sql_scripts.append(f"INSERT INTO {t_name} ({cols}) VALUES ({vals});")
+                
+                sql_content = "\n".join(sql_scripts).encode('utf-8')
+                download_file(sql_content, f"{t_name}.sql", "text/plain")
+                st.innerText = "✅ SQL dosyası indirildi!"
+            except Exception as ex: st.innerText = f"❌ Hata: {ex}"
     </script>
+
 </body>
 </html>
