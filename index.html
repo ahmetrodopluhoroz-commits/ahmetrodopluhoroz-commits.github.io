@@ -3,50 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Veri İşlem Paneli</title>
+    <title>Excel Birleştirici Pro</title>
+
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.10.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.10.1/core.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-6">
 
-    <div class="max-w-md w-full bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
-        <h1 class="text-2xl font-bold mb-6 text-emerald-400">Python Hesaplayıcı</h1>
+    <py-config>
+        packages = ["pandas", "openpyxl"]
+    </py-config>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-8">
+
+    <div class="max-w-2xl mx-auto bg-slate-800 p-10 rounded-3xl shadow-2xl border border-slate-700">
+        <h1 class="text-3xl font-bold mb-2 text-emerald-400">Excel Birleştirici</h1>
+        <p class="text-slate-400 mb-8">Birden fazla Excel seçin, sütunları eşleştirip tek dosyada birleştirelim.</p>
         
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">Bir sayı giriniz:</label>
-                <input type="number" id="user_input" placeholder="Örn: 100" 
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-emerald-500 focus:outline-none focus:border-emerald-500">
+        <div class="space-y-6">
+            <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-emerald-500 transition-colors">
+                <input type="file" id="file_input" multiple accept=".xlsx, .xls" class="hidden">
+                <label for="file_input" class="cursor-pointer">
+                    <div class="text-slate-300 mb-2">📂 Dosyaları Seçmek İçin Tıklayın</div>
+                    <div id="file_list" class="text-xs text-emerald-500 font-mono">Henüz dosya seçilmedi</div>
+                </label>
             </div>
             
-            <button py-click="hesapla" 
-                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-all">
-                Python ile Hesapla
+            <button py-click="birlestir_ve_indir" id="btn_process"
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3">
+                <span>Birleştir ve İndir</span>
             </button>
 
-            <div id="sonuc_alani" class="mt-6 p-4 bg-black rounded-xl border border-slate-700 min-h-[50px] flex items-center justify-center text-xl font-mono text-emerald-400">
-                Sonuç burada görünecek...
+            <div id="status" class="text-center text-sm font-mono text-slate-500 italic">
+                # Hazır
             </div>
         </div>
     </div>
 
     <script type="py">
+        import pandas as pd
+        import io
         from pyscript import display, document
+        from js import Uint8Array, File, URL, document as js_document
 
-        def hesapla(event):
-            # Input alanındaki veriyi çek
-            input_text = document.querySelector("#user_input").value
+        async def birlestir_ve_indir(event):
+            status = document.querySelector("#status")
+            file_input = document.querySelector("#file_input")
+            files = file_input.files
+
+            if len(files) < 2:
+                status.innerText = "⚠️ Lütfen en az 2 dosya seçin!"
+                return
+
+            status.innerText = "⏳ İşleniyor... Lütfen bekleyin."
             
-            if input_text:
-                sayi = float(input_text)
-                # Örnek bir işlem: Sayının karesini alalım
-                sonuc = sayi * sayi
+            try:
+                all_data = []
                 
-                # Sonucu ekrana yazdır
-                display(f"Sonuç: {sonuc}", target="sonuc_alani", append=False)
-            else:
-                display("Lütfen bir sayı girin!", target="sonuc_alani", append=False)
+                for i, file in enumerate(files):
+                    # Tarayıcıdaki dosyayı Python'un okuyabileceği formata çeviriyoruz
+                    array_buffer = await file.arrayBuffer()
+                    uint8_array = Uint8Array.new(array_buffer)
+                    bytes_io = io.BytesIO(uint8_array.to_py())
+                    
+                    # Excel'i oku (İlk satırı otomatik başlık kabul eder)
+                    df = pd.read_excel(bytes_io)
+                    all_data.append(df)
+                    status.innerText = f"⏳ {i+1}/{len(files)} dosya okundu..."
+
+                # Tüm DataFrame'leri tek bir tabloda birleştir (Başlıklar otomatik eşleşir)
+                combined_df = pd.concat(all_data, ignore_index=True)
+
+                # Bellekte yeni bir Excel oluştur
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    combined_df.to_excel(writer, index=False)
+                
+                # Dosyayı kullanıcıya indirtme işlemi (JS köprüsü ile)
+                excel_data = output.getvalue()
+                js_array = Uint8Array.new(len(excel_data))
+                js_array.assign(excel_data)
+                
+                file_name = "birlesmis_excel.xlsx"
+                blob = js_document.defaultView.Blob.new([js_array], { "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+                url = URL.createObjectURL(blob)
+                
+                link = js_document.createElement("a")
+                link.href = url
+                link.download = file_name
+                link.click()
+                
+                status.innerText = "✅ İşlem tamamlandı! Dosya indiriliyor."
+                
+            except Exception as e:
+                status.innerText = f"❌ Hata oluştu: {str(e)}"
+
+        # Dosya seçildiğinde isimleri ekranda göstermek için minik bir tetikleyici
+        def show_files(event):
+            file_input = document.querySelector("#file_input")
+            file_list = document.querySelector("#file_list")
+            names = [f.name for f in file_input.files]
+            file_list.innerText = "Seçilenler: " + ", ".join(names)
+
+        document.querySelector("#file_input").onchange = show_files
     </script>
 
 </body>
