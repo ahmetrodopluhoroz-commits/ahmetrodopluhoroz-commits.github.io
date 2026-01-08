@@ -3,158 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG Sprint Board</title>
+    <title>RASG | Cloud Dashboard 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0c0c0e; color: #d1d1d1; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1c; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        .column-width { min-width: 300px; width: 300px; }
+    </style>
 </head>
-<body class="bg-slate-100">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // --- API BİLGİLERİNİZİ BURAYA YAPIŞTIRIN ---
+        const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
+        const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const COLUMNS = [
+            { id: 'todo', title: 'TO DO', dot: '#4b5563' },
+            { id: 'yapilacak', title: 'YAPILACAK', dot: '#d1d5db' },
+            { id: 'calisiliyor', title: 'ÇALIŞILIYOR', dot: '#7c3aed' },
+            { id: 'beklemede', title: 'BEKLEMEDE', dot: '#d97706' },
+            { id: 'guncelleme', title: 'GÜNCELLEME GEREKLİ', dot: '#ca8a04' },
+            { id: 'tamamlandi', title: 'TAMAMLANDI', dot: '#14b8a6' }
+        ];
+
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
             const [username, setUsername] = useState("");
             const [password, setPassword] = useState("");
-            const [error, setError] = useState("");
+            const [tasks, setTasks] = useState([]);
+            const [loading, setLoading] = useState(false);
 
-            // Sprint Board State
-            const [tasks, setTasks] = useState(() => {
-                const saved = localStorage.getItem("rasg_tasks");
-                return saved ? JSON.parse(saved) : [];
-            });
-            const [newTask, setNewTask] = useState("");
+            // Verileri Buluttan Çek
+            const fetchTasks = async () => {
+                setLoading(true);
+                const { data, error } = await supabaseClient.from('tasks').select('*').order('created_at', { ascending: true });
+                if (!error) setTasks(data);
+                setLoading(false);
+            };
 
             useEffect(() => {
-                localStorage.setItem("rasg_tasks", JSON.stringify(tasks));
-            }, [tasks]);
+                if (isLoggedIn) fetchTasks();
+            }, [isLoggedIn]);
 
-            // Giriş Fonksiyonu
             const handleLogin = (e) => {
                 e.preventDefault();
-                if (username === "RASG" && password === "RASG2026") {
-                    setIsLoggedIn(true);
-                    setError("");
-                } else {
-                    setError("Hatalı kullanıcı adı veya şifre!");
+                if (username === "RASG" && password === "RASG2026") setIsLoggedIn(true);
+                else alert("Hatalı Giriş!");
+            };
+
+            const addTask = async (status = 'todo') => {
+                const text = prompt("Görev başlığı:");
+                if (!text) return;
+                const newTask = { text, status, assignee: 'AR', date: new Date().toLocaleDateString('tr-TR') };
+                const { error } = await supabaseClient.from('tasks').insert([newTask]);
+                if (!error) fetchTasks();
+            };
+
+            const moveTask = async (id, currentStatus, direction) => {
+                const currentIndex = COLUMNS.findIndex(c => c.id === currentStatus);
+                const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+                if (nextIndex >= 0 && nextIndex < COLUMNS.length) {
+                    const { error } = await supabaseClient.from('tasks').update({ status: COLUMNS[nextIndex].id }).eq('id', id);
+                    if (!error) fetchTasks();
                 }
             };
 
-            // Sprint Board Fonksiyonları
-            const addTask = (e) => {
-                e.preventDefault();
-                if (!newTask.trim()) return;
-                const task = { id: Date.now(), text: newTask, status: 'todo' };
-                setTasks([...tasks, task]);
-                setNewTask("");
+            const deleteTask = async (id) => {
+                if (confirm("Görevi kalıcı olarak silmek istiyor musunuz?")) {
+                    const { error } = await supabaseClient.from('tasks').delete().eq('id', id);
+                    if (!error) fetchTasks();
+                }
             };
 
-            const moveTask = (id, newStatus) => {
-                setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus } : t));
-            };
-
-            const deleteTask = (id) => {
-                setTasks(tasks.filter(t => t.id !== id));
-            };
-
-            // Giriş Ekranı Tasarımı
             if (!isLoggedIn) {
                 return (
-                    <div class="min-h-screen flex items-center justify-center bg-slate-900">
-                        <div class="bg-white p-8 rounded-xl shadow-2xl w-96">
-                            <div class="text-center mb-8">
-                                <h1 class="text-3xl font-bold text-purple-600">RASG Giriş</h1>
-                                <p class="text-gray-500 mt-2">Devam etmek için giriş yapın</p>
-                            </div>
-                            <form onSubmit={handleLogin} class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Kullanıcı Adı</label>
-                                    <input 
-                                        type="text" 
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        class="mt-1 block w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 outline-none"
-                                        placeholder="Kullanıcı adını yazın"
-                                    />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Şifre</label>
-                                    <input 
-                                        type="password" 
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        class="mt-1 block w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 outline-none"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                                {error && <p class="text-red-500 text-sm">{error}</p>}
-                                <button class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 transition">
-                                    Giriş Yap
-                                </button>
+                    <div class="min-h-screen flex items-center justify-center bg-black">
+                        <div class="bg-[#1a1a1c] p-10 rounded-xl border border-zinc-800 w-full max-w-sm shadow-2xl">
+                            <h2 class="text-3xl font-bold text-white mb-8 text-center tracking-tight">RASG LOGIN</h2>
+                            <form onSubmit={handleLogin} class="space-y-5">
+                                <input type="text" placeholder="Kullanıcı Adı" onChange={e => setUsername(e.target.value)} class="w-full p-4 bg-zinc-900 border border-zinc-700 rounded-lg text-white outline-none focus:border-purple-500 transition-all"/>
+                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} class="w-full p-4 bg-zinc-900 border border-zinc-700 rounded-lg text-white outline-none focus:border-purple-500 transition-all"/>
+                                <button class="w-full bg-purple-600 p-4 rounded-lg font-bold text-white hover:bg-purple-700 transition shadow-lg shadow-purple-900/20">Dashboard'a Gir</button>
                             </form>
                         </div>
                     </div>
                 );
             }
 
-            // Sprint Board Tasarımı
-            const Column = ({ title, status, color }) => (
-                <div class="flex-1 min-w-[300px] bg-slate-200/50 p-4 rounded-xl m-2 border border-slate-300">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-700">{title}</h3>
-                        <span class="bg-slate-300 px-2 py-1 rounded text-xs text-slate-600">
-                            {tasks.filter(t => t.status === status).length}
-                        </span>
-                    </div>
-                    {tasks.filter(t => t.status === status).map(task => (
-                        <div key={task.id} class="bg-white p-4 mb-3 rounded-lg shadow-sm border-l-4 border-purple-500 flex justify-between items-center group animate-in slide-in-from-top-2 duration-300">
-                            <span class="text-slate-700">{task.text}</span>
-                            <div class="flex gap-2">
-                                {status !== 'done' && (
-                                    <button onClick={() => moveTask(task.id, status === 'todo' ? 'progress' : 'done')} class="text-blue-500 hover:scale-125 transition">
-                                        <i class="fas fa-arrow-right"></i>
-                                    </button>
-                                )}
-                                <button onClick={() => deleteTask(task.id)} class="text-red-300 hover:text-red-600 transition">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+            return (
+                <div class="h-screen flex flex-col">
+                    <header class="bg-[#1a1a1c] border-b border-zinc-800 p-4 flex justify-between items-center shadow-md z-10">
+                        <div class="flex items-center gap-6">
+                            <span class="text-zinc-400 font-semibold flex items-center gap-2">
+                                <i class="fas fa-layer-group text-purple-500"></i> 2026-Ortak İş & Proje
+                            </span>
+                            <div class="hidden md:flex gap-5 text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
+                                <span class="text-white border-b-2 border-blue-500 pb-1 cursor-pointer">Board</span>
+                                <span class="hover:text-white cursor-pointer transition">List</span>
+                                <span class="hover:text-white cursor-pointer transition">Timeline</span>
                             </div>
                         </div>
-                    ))}
-                </div>
-            );
-
-            return (
-                <div class="min-h-screen bg-slate-100 p-8">
-                    <header class="mb-10 flex flex-wrap justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div>
-                            <h1 class="text-2xl font-bold text-slate-800">🚀 Aktif Sprint: RASG Ekibi</h1>
-                            <p class="text-slate-500 text-sm">Görevlerinizi buradan yönetin</p>
-                        </div>
-                        <div class="flex gap-4 items-center mt-4 sm:mt-0">
-                            <form onSubmit={addTask} class="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    value={newTask} 
-                                    onChange={(e) => setNewTask(e.target.value)}
-                                    placeholder="Yapılacak işi yazın..." 
-                                    class="p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none w-64"
-                                />
-                                <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 shadow-lg shadow-purple-200 transition">Ekle</button>
-                            </form>
-                            <button onClick={() => setIsLoggedIn(false)} class="text-slate-400 hover:text-red-500 transition">
-                                <i class="fas fa-sign-out-alt text-xl"></i>
-                            </button>
+                        <div class="flex items-center gap-4">
+                            {loading && <i class="fas fa-circle-notch fa-spin text-zinc-500"></i>}
+                            <button onClick={() => addTask()} class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-bold shadow-lg shadow-blue-900/20 transition-all">+ TASK</button>
+                            <button onClick={() => setIsLoggedIn(false)} class="text-zinc-600 hover:text-red-500 transition"><i class="fas fa-power-off"></i></button>
                         </div>
                     </header>
 
-                    <div class="flex flex-nowrap overflow-x-auto pb-4 custom-scrollbar">
-                        <Column title="YAPILACAKLAR" status="todo" />
-                        <Column title="DEVAM EDİYOR" status="progress" />
-                        <Column title="BİTTİ" status="done" />
-                    </div>
+                    <main class="flex-1 flex overflow-x-auto p-6 gap-6 custom-scrollbar bg-[#0c0c0e]">
+                        {COLUMNS.map(col => (
+                            <div key={col.id} class="column-width flex flex-col">
+                                <div class="flex items-center justify-between mb-5 border-b border-zinc-800 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div style={{backgroundColor: col.dot}} class="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]"></div>
+                                        <span class="text-[11px] font-black text-zinc-400 uppercase tracking-tighter">{col.title}</span>
+                                        <span class="text-zinc-600 text-[10px] font-bold bg-zinc-900 px-1.5 py-0.5 rounded-sm">{tasks.filter(t => t.status === col.id).length}</span>
+                                    </div>
+                                    <i onClick={() => addTask(col.id)} class="fas fa-plus text-zinc-700 hover:text-zinc-400 cursor-pointer text-[10px]"></i>
+                                </div>
+                                
+                                <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                                    {tasks.filter(t => t.status === col.id).map(task => (
+                                        <div key={task.id} class="bg-[#1a1a1c] border border-zinc-800 rounded-lg p-4 hover:border-zinc-500 transition-all group shadow-sm">
+                                            <p class="text-[13px] text-zinc-200 leading-snug font-medium mb-4">{task.text}</p>
+                                            
+                                            <div class="flex items-center justify-between border-t border-zinc-800/50 pt-3">
+                                                <div class="flex items-center gap-3">
+                                                    <span class="bg-purple-900/30 text-purple-400 text-[9px] font-bold px-1.5 py-0.5 rounded border border-purple-800/30">{task.assignee}</span>
+                                                    <span class="text-zinc-600 text-[9px] flex items-center gap-1">
+                                                        <i class="far fa-clock"></i> {task.date}
+                                                    </span>
+                                                </div>
+                                                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => moveTask(task.id, task.status, 'prev')} class="text-zinc-600 hover:text-white"><i class="fas fa-chevron-left text-[10px]"></i></button>
+                                                    <button onClick={() => moveTask(task.id, task.status, 'next')} class="text-zinc-600 hover:text-white"><i class="fas fa-chevron-right text-[10px]"></i></button>
+                                                    <button onClick={() => deleteTask(task.id)} class="text-zinc-700 hover:text-red-500"><i class="fas fa-trash text-[10px]"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div onClick={() => addTask(col.id)} class="text-zinc-700 hover:text-zinc-500 text-[11px] py-2 px-1 cursor-pointer border border-dashed border-zinc-800 rounded-lg text-center transition-colors">
+                                        + Add Task
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </main>
                 </div>
             );
         }
@@ -162,11 +168,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    </style>
 </body>
 </html>
