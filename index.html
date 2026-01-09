@@ -2,9 +2,9 @@
 <html lang="tr" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG | Full Stack Project Management</title>
+    <title>RASG | Horoz Lojistik Smart Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -15,27 +15,35 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
         .column-width { min-width: 320px; width: 320px; }
-        .modal-overlay { background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 50; }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px); z-index: 50; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        .dragging { opacity: 0.4; transform: scale(0.98); }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
-        // --- SUPABASE BAĞLANTISI (Lütfen Kendi Bilgilerinizi Girin) ---
-        const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
+        // --- SUPABASE BAĞLANTISI ---
+        const SUPABASE_URL = "URL_BURAYA"; 
+        const SUPABASE_KEY = "KEY_BURAYA";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const TEAM = [
-            { id: 'AR', name: 'Ahmet', color: 'bg-orange-500' },
-            { id: 'BD', name: 'Berkan', color: 'bg-blue-500' },
-            { id: 'YE', name: 'Yiğit', color: 'bg-purple-500' }
-        ];
+        const TEAM_MAP = {
+            "Ahmet Rodoplu": "AR",
+            "Berkan Dervişoğlu": "BD",
+            "Yiğit Erol": "YE"
+        };
+
+        const STATUS_MAP = {
+            "tamamlandı": "tamamlandi",
+            "güncelleme gerekli": "guncelleme",
+            "beklemede": "beklemede",
+            "çalışılıyor": "calisiliyor",
+            "başlanacak": "yapilacak",
+            "to do": "todo"
+        };
 
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -44,25 +52,26 @@
             const [tasks, setTasks] = useState([]);
             const [columns, setColumns] = useState([]);
             const [selectedTask, setSelectedTask] = useState(null);
-            const [subtasks, setSubtasks] = useState([]);
             const [draggedTaskId, setDraggedTaskId] = useState(null);
 
-            // Verileri Yükle
             const fetchData = async () => {
                 const { data: cols } = await supabase.from('columns').select('*').order('order_index');
                 const { data: tsk } = await supabase.from('tasks').select('*').order('created_at');
                 if (cols) setColumns(cols);
-                if (tsk) setTasks(tsk);
-            };
-
-            const fetchSubtasks = async (taskId) => {
-                const { data } = await supabase.from('subtasks').select('*').eq('parent_id', taskId).order('created_at');
-                setSubtasks(data || []);
+                if (tsk) setTasks(tsk || []);
             };
 
             useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
 
-            // Görev Güncelleme (Tarih, Kişi, Başlık, Durum)
+            const addTask = async (statusSlug) => {
+                const text = prompt("Yeni Görev Başlığı:");
+                if (!text) return;
+                const { error } = await supabase.from('tasks').insert([{ 
+                    text, status: statusSlug || 'todo', assignee: [], priority: 'Normal' 
+                }]);
+                if (!error) fetchData();
+            };
+
             const updateTask = async (taskId, updates) => {
                 const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
                 if (!error) {
@@ -71,26 +80,56 @@
                 }
             };
 
-            // Çoklu Kişi Seçimi (Multi-Assignee)
-            const toggleAssignee = (taskId, currentAssignees, userId) => {
-                let newAssignees = Array.isArray(currentAssignees) ? [...currentAssignees] : [];
-                if (newAssignees.includes(userId)) {
-                    newAssignees = newAssignees.filter(id => id !== userId);
-                } else {
-                    newAssignees.push(userId);
-                }
-                updateTask(taskId, { assignee: newAssignees });
+            const parseClickUpDate = (dateStr) => {
+                if (!dateStr || dateStr === "NaN") return null;
+                try {
+                    const d = new Date(dateStr);
+                    return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+                } catch { return null; }
+            };
+
+            const handleCSVUpload = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: async (results) => {
+                        const importedTasks = results.data.map(row => {
+                            const rawAssignees = row.Assignee ? row.Assignee.replace(/[\[\]]/g, '').split(', ') : [];
+                            const mappedAssignees = rawAssignees.map(name => TEAM_MAP[name]).filter(Boolean);
+                            
+                            const rawStatus = (row.Status || '').toLowerCase().trim();
+                            const mappedStatus = STATUS_MAP[rawStatus] || 'todo';
+
+                            return {
+                                text: row['Task Name'] || "Başlıksız Görev",
+                                status: mappedStatus,
+                                description: row['Task Content'] || "",
+                                start_date: parseClickUpDate(row['Start Date']),
+                                end_date: parseClickUpDate(row['Due Date']),
+                                assignee: mappedAssignees,
+                                priority: row.Priority || "Normal"
+                            };
+                        });
+
+                        const { error } = await supabase.from('tasks').insert(importedTasks);
+                        if (error) alert("Hata: " + error.message);
+                        else { alert(`${importedTasks.length} görev yüklendi!`); fetchData(); }
+                    }
+                });
             };
 
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-                        <div className="bg-[#1a1a1c] p-10 rounded-2xl border border-zinc-800 w-full max-w-sm shadow-2xl">
-                            <h2 className="text-3xl font-bold text-white mb-8 text-center tracking-tight">RASG LOGIN</h2>
-                            <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hata!"); }} className="space-y-5">
-                                <input type="text" placeholder="Kullanıcı Adı" onChange={e => setUsername(e.target.value)} className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500 transition-all"/>
-                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500 transition-all"/>
-                                <button className="w-full bg-purple-600 p-4 rounded-xl font-bold text-white hover:bg-purple-700 transition shadow-lg shadow-purple-900/20">Dashboard'a Gir</button>
+                    <div className="min-h-screen flex items-center justify-center bg-black">
+                        <div className="bg-[#1a1a1c] p-10 rounded-3xl border border-zinc-800 w-full max-w-sm shadow-2xl">
+                            <h2 className="text-2xl font-black text-white mb-8 text-center tracking-tighter uppercase italic">RASG 2026</h2>
+                            <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hatalı!"); }} className="space-y-4">
+                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-purple-500" />
+                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-purple-500" />
+                                <button className="w-full bg-purple-600 p-4 rounded-2xl font-bold text-white hover:bg-purple-700 transition shadow-lg shadow-purple-900/20">Sistemi Başlat</button>
                             </form>
                         </div>
                     </div>
@@ -99,113 +138,100 @@
 
             return (
                 <div className="h-screen flex flex-col">
-                    <header className="bg-[#1a1a1c] border-b border-zinc-800 p-4 flex justify-between items-center z-10">
+                    <header className="bg-[#1a1a1c] border-b border-zinc-800 p-4 flex justify-between items-center z-10 shadow-2xl">
                         <div className="flex items-center gap-4">
-                            <i className="fas fa-layer-group text-purple-500 text-xl"></i>
-                            <h1 className="font-bold text-zinc-300 tracking-tight">2026 PROJE YÖNETİM ALANI</h1>
+                            <div className="bg-purple-600 w-8 h-8 rounded-lg flex items-center justify-center"><i className="fas fa-bolt text-white"></i></div>
+                            <h1 className="font-bold text-zinc-100 tracking-tight">RASG Dashboard <span className="text-zinc-500 font-normal ml-2">| 2026 Sprint</span></h1>
                         </div>
-                        <div className="flex gap-4 items-center">
-                            <button onClick={async () => {
-                                const title = prompt("Sütun Adı?");
-                                if(title) await supabase.from('columns').insert([{title, slug: title.toLowerCase().replace(/ /g,'_'), order_index: columns.length+1}]);
-                                fetchData();
-                            }} className="text-[10px] font-black text-zinc-500 hover:text-white uppercase">+ Add Status</button>
-                            <button onClick={() => setIsLoggedIn(false)} className="text-zinc-600 hover:text-red-500 transition"><i className="fas fa-power-off"></i></button>
+                        <div className="flex gap-3 items-center">
+                            <label className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-xl text-[10px] font-black cursor-pointer transition uppercase tracking-widest border border-zinc-700">
+                                <i className="fas fa-cloud-upload-alt mr-2"></i> ClickUp CSV Import
+                                <input type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} />
+                            </label>
+                            <button onClick={() => addTask(columns[0]?.slug)} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-blue-900/40">
+                                <i className="fas fa-plus mr-2"></i> YENİ TASK
+                            </button>
+                            <button onClick={() => setIsLoggedIn(false)} className="text-zinc-600 hover:text-red-500 ml-4"><i className="fas fa-power-off"></i></button>
                         </div>
                     </header>
 
                     <main className="flex-1 flex overflow-x-auto p-6 gap-6 bg-[#0c0c0e] custom-scrollbar">
                         {columns.map(col => (
-                            <div key={col.id} className="column-width flex flex-col" onDragOver={e => e.preventDefault()} onDrop={() => {
-                                if (draggedTaskId) updateTask(draggedTaskId, { status: col.slug });
-                            }}>
-                                <div className="flex items-center justify-between mb-5 border-b border-zinc-800 pb-2">
+                            <div key={col.id} className="column-width flex flex-col" onDragOver={e => e.preventDefault()} onDrop={() => draggedTaskId && updateTask(draggedTaskId, { status: col.slug })}>
+                                <div className="flex items-center justify-between mb-5 px-1">
                                     <div className="flex items-center gap-2">
-                                        <div style={{backgroundColor: col.dot_color}} className="w-2.5 h-2.5 rounded-full"></div>
-                                        <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">{col.title}</span>
-                                        <span className="text-zinc-600 text-[10px] font-bold bg-[#1a1a1c] px-2 py-0.5 rounded-full">{tasks.filter(t => t.status === col.slug).length}</span>
+                                        <div style={{backgroundColor: col.dot_color}} className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.1)]"></div>
+                                        <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{col.title}</span>
+                                        <span className="text-zinc-400 text-[10px] font-bold bg-[#1a1a1c] px-2 py-0.5 rounded-md border border-zinc-800">{tasks.filter(t => t.status === col.slug).length}</span>
                                     </div>
-                                    <i onClick={async () => {
-                                        const text = prompt("Yeni Görev?");
-                                        if(text) await supabase.from('tasks').insert([{text, status: col.slug, assignee: []}]);
-                                        fetchData();
-                                    }} className="fas fa-plus text-zinc-800 hover:text-zinc-400 cursor-pointer text-[10px]"></i>
+                                    <i onClick={() => addTask(col.slug)} className="fas fa-plus-circle text-zinc-800 hover:text-zinc-400 cursor-pointer text-sm"></i>
                                 </div>
 
                                 <div className="flex-1 space-y-3">
                                     {tasks.filter(t => t.status === col.slug).map(task => (
-                                        <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} onClick={() => setSelectedTask(task)} className={`bg-[#1a1a1c] border border-zinc-800 p-4 rounded-xl hover:border-zinc-500 transition-all cursor-pointer group shadow-sm ${draggedTaskId === task.id ? 'dragging' : ''}`}>
-                                            <p className="text-[13px] text-zinc-200 font-medium mb-4 leading-relaxed line-clamp-2">{task.text}</p>
-                                            <div className="flex justify-between items-center">
+                                        <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} onClick={() => setSelectedTask(task)} className="bg-[#1a1a1c] border border-zinc-800 p-5 rounded-2xl hover:border-zinc-500 transition-all cursor-pointer group shadow-sm hover:shadow-purple-900/5">
+                                            <p className="text-[13px] text-zinc-200 font-semibold mb-5 leading-relaxed line-clamp-2">{task.text}</p>
+                                            <div className="flex justify-between items-center border-t border-zinc-800/50 pt-4">
                                                 <div className="flex -space-x-2 overflow-hidden">
-                                                    {(task.assignee || []).map(id => {
-                                                        const user = TEAM.find(u => u.id === id);
-                                                        return <div key={id} className={`inline-block h-6 w-6 rounded-full border-2 border-[#1a1a1c] flex items-center justify-center text-[8px] font-bold text-white ${user?.color || 'bg-zinc-700'}`}>{id}</div>
-                                                    })}
+                                                    {(task.assignee || []).map(id => (
+                                                        <div key={id} className="h-6 w-6 rounded-full border-2 border-[#1a1a1c] bg-zinc-700 flex items-center justify-center text-[8px] font-black text-white uppercase">{id}</div>
+                                                    ))}
                                                 </div>
-                                                <div className="text-[9px] text-zinc-600">
-                                                    {task.end_date && <span><i className="far fa-calendar-alt mr-1"></i>{new Date(task.end_date).toLocaleDateString('tr-TR', {day:'numeric', month:'short'})}</span>}
+                                                <div className="text-[9px] text-zinc-600 font-bold bg-zinc-900/50 px-2 py-1 rounded-md">
+                                                    {task.end_date ? <span><i className="far fa-calendar-alt mr-1"></i>{new Date(task.end_date).toLocaleDateString('tr-TR', {day:'numeric', month:'short'})}</span> : 'Süresiz'}
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
+                                    <button onClick={() => addTask(col.slug)} className="w-full py-3 text-zinc-800 hover:text-zinc-500 text-[10px] font-black border-2 border-dashed border-zinc-900 rounded-2xl transition-all uppercase tracking-widest">+ GÖREV EKLE</button>
                                 </div>
                             </div>
                         ))}
                     </main>
 
-                    {/* GÖREV DETAY MODALI */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-50">
-                            <div className="w-full max-w-2xl bg-[#141416] h-full shadow-2xl border-l border-zinc-800 p-8 flex flex-col overflow-y-auto custom-scrollbar animate-in slide-in-from-right">
-                                <div className="flex justify-between items-center mb-10">
-                                    <div className="text-zinc-500 text-xs font-bold uppercase tracking-widest"><i className="fas fa-tasks text-purple-500 mr-2"></i> TASK DETAILS</div>
-                                    <button onClick={() => { setSelectedTask(null); setSubtasks([]); }} className="text-zinc-500 hover:text-white transition-all"><i className="fas fa-times text-xl"></i></button>
+                            <div className="w-full max-w-xl bg-[#141416] h-full shadow-2xl border-l border-zinc-800 p-10 flex flex-col overflow-y-auto custom-scrollbar animate-in slide-in-from-right duration-500">
+                                <div className="flex justify-between items-center mb-12">
+                                    <span className="bg-purple-900/20 text-purple-400 px-4 py-2 rounded-xl border border-purple-800/30 text-[10px] font-black uppercase tracking-widest">GÖREV AYRINTILARI</span>
+                                    <button onClick={() => setSelectedTask(null)} className="text-zinc-600 hover:text-white transition-all"><i className="fas fa-times text-2xl"></i></button>
                                 </div>
 
-                                <input className="text-3xl font-bold bg-transparent outline-none text-white mb-8 w-full border-b border-transparent focus:border-zinc-800 pb-2" defaultValue={selectedTask.text} onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} />
+                                <input className="text-3xl font-bold bg-transparent outline-none text-white mb-12 w-full focus:text-purple-400 transition-colors" defaultValue={selectedTask.text} onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} />
 
-                                <div className="space-y-8">
-                                    {/* Atanan Kişiler (Multiple) */}
-                                    <div className="space-y-3">
-                                        <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Assignees</label>
-                                        <div className="flex gap-2">
-                                            {TEAM.map(user => {
-                                                const isActive = (selectedTask.assignee || []).includes(user.id);
+                                <div className="space-y-10">
+                                    <div className="space-y-4">
+                                        <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">ATANAN EKİP ÜYELERİ</label>
+                                        <div className="flex gap-3">
+                                            {Object.entries(TEAM_MAP).map(([fullName, id]) => {
+                                                const active = (selectedTask.assignee || []).includes(id);
                                                 return (
-                                                    <button key={user.id} onClick={() => toggleAssignee(selectedTask.id, selectedTask.assignee, user.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${isActive ? `${user.color} border-transparent text-white shadow-lg` : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
-                                                        <span className="text-xs font-black">{user.id}</span>
-                                                        <span className="text-[10px] font-bold">{user.name}</span>
+                                                    <button key={id} onClick={() => {
+                                                        const current = selectedTask.assignee || [];
+                                                        const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+                                                        updateTask(selectedTask.id, { assignee: next });
+                                                    }} className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all border ${active ? `bg-purple-600 text-white border-transparent shadow-lg shadow-purple-900/40` : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}>
+                                                        {id} <span className="ml-2 font-normal opacity-60 text-[10px]">{fullName.split(' ')[0]}</span>
                                                     </button>
                                                 )
                                             })}
                                         </div>
                                     </div>
 
-                                    {/* Takvim Planlama */}
-                                    <div className="grid grid-cols-2 gap-6 pt-6 border-t border-zinc-900">
-                                        <div className="space-y-2">
-                                            <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Start Date</label>
-                                            <input type="date" value={selectedTask.start_date || ""} onChange={(e) => updateTask(selectedTask.id, { start_date: e.target.value })} className="bg-[#0c0c0e] border border-zinc-800 text-zinc-300 p-3 rounded-xl w-full outline-none focus:border-purple-500 transition-all" />
+                                    <div className="grid grid-cols-2 gap-6 pt-10 border-t border-zinc-900">
+                                        <div className="space-y-3">
+                                            <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">BAŞLANGIÇ</label>
+                                            <input type="date" value={selectedTask.start_date || ""} onChange={e => updateTask(selectedTask.id, { start_date: e.target.value })} className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full outline-none focus:border-purple-500 transition-all" />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">End Date (Due)</label>
-                                            <input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className="bg-[#0c0c0e] border border-zinc-800 text-zinc-300 p-3 rounded-xl w-full outline-none focus:border-purple-500 transition-all" />
+                                        <div className="space-y-3">
+                                            <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">BİTİŞ (DEADLINE)</label>
+                                            <input type="date" value={selectedTask.end_date || ""} onChange={e => updateTask(selectedTask.id, { end_date: e.target.value })} className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full outline-none focus:border-purple-500 transition-all" />
                                         </div>
                                     </div>
 
-                                    {/* Durum Seçici */}
-                                    <div className="pt-6 border-t border-zinc-900">
-                                        <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest block mb-3">Status</label>
-                                        <select value={selectedTask.status} onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })} className="bg-[#0c0c0e] border border-zinc-800 text-zinc-300 p-4 rounded-xl w-full outline-none focus:border-purple-500 appearance-none cursor-pointer">
-                                            {columns.map(c => <option key={c.id} value={c.slug}>{c.title}</option>)}
-                                        </select>
-                                    </div>
-
-                                    {/* Açıklama */}
-                                    <div className="pt-6 border-t border-zinc-900">
-                                        <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest block mb-3">Description</label>
-                                        <textarea className="w-full bg-[#0c0c0e] border border-zinc-800 rounded-2xl p-5 text-sm min-h-[150px] outline-none focus:border-zinc-700 custom-scrollbar leading-relaxed" placeholder="Detaylar..." defaultValue={selectedTask.description} onBlur={(e) => updateTask(selectedTask.id, { description: e.target.value })} />
+                                    <div className="pt-10 border-t border-zinc-900">
+                                        <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest block mb-4">GÖREV İÇERİĞİ / AÇIKLAMA</label>
+                                        <textarea className="w-full bg-[#0c0c0e] border border-zinc-800 rounded-3xl p-6 text-sm min-h-[200px] outline-none focus:border-purple-900/50 transition-all custom-scrollbar leading-relaxed" placeholder="ClickUp'tan gelen içerik buraya dökülür..." defaultValue={selectedTask.description} onBlur={e => updateTask(selectedTask.id, { description: e.target.value })} />
                                     </div>
                                 </div>
                             </div>
