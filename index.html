@@ -103,7 +103,7 @@
             const ganttStartDate = new Date(2025, 11, 1); // 1 Aralık 2025
             const ganttDays = useMemo(() => {
                 const days = [];
-                for(let i=0; i<90; i++) { // 90 günlük geniş bir görünüm
+                for(let i=0; i<400; i++) { // 90 günlük geniş bir görünüm
                     const d = new Date(ganttStartDate);
                     d.setDate(ganttStartDate.getDate() + i);
                     days.push(d);
