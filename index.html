@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG | 2026 Ultimate Dashboard (v2.5)</title>
+    <title>RASG | 2026 Ultimate Dashboard (v2.4)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
     <style>
         body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; transition: all 0.3s ease; }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -27,8 +25,6 @@
         .dark-column { background-color: #1a1a1c; }
         .dark-card { background-color: #242427; border: 1px solid #333; color: #eee; }
         .tag-badge { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-        .toast-in { animation: slideIn 0.3s ease-out forwards; }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body>
@@ -37,22 +33,14 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- YAPILANDIRMA ---
         const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // EmailJS Bilgilerini Buraya Girin
-        const EMAILJS_PUBLIC_KEY = "VEEJm_elm6LgeV7ks"; 
-        const EMAILJS_SERVICE_ID = "service_0lkrrzm";
-        const EMAILJS_TEMPLATE_ID = "template_ibxkhkn";
-
-        emailjs.init(EMAILJS_PUBLIC_KEY);
-
         const TEAM = [
-            { id: 'AR', name: 'Ahmet', color: 'bg-[#0052CC]', email: 'ahmet.rodoplu@horoz.com.tr' },
-            { id: 'BD', name: 'Berkan', color: 'bg-orange-500', email: 'berkan.dervisoglu@horoz.com.tr' },
-            { id: 'YE', name: 'Yiğit', color: 'bg-purple-500', email: 'yigit.erol@horoz.com.tr' }
+            { id: 'AR', name: 'Ahmet', color: 'bg-[#0052CC]' },
+            { id: 'BD', name: 'Berkan', color: 'bg-orange-500' },
+            { id: 'YE', name: 'Yiğit', color: 'bg-purple-500' }
         ];
 
         function App() {
@@ -61,21 +49,24 @@
             const [password, setPassword] = useState("");
             const [tasks, setTasks] = useState([]);
             const [columns, setColumns] = useState([]);
-            const [availableTags, setAvailableTags] = useState([]);
+            const [availableTags, setAvailableTags] = useState([]); // Sistemdeki tüm etiketler
             const [selectedTask, setSelectedTask] = useState(null);
             const [currentView, setCurrentView] = useState('board');
             const [theme, setTheme] = useState('quartz');
-            const [toasts, setToasts] = useState([]);
-            
-            const [filterAssignee, setFilterAssignee] = useState('All');
-            const [filterTag, setFilterTag] = useState('All');
             const [draggedTaskId, setDraggedTaskId] = useState(null);
+            
+            // Filtreler
+            const [filterAssignee, setFilterAssignee] = useState('All');
+            const [filterTime, setFilterTime] = useState('All');
+            const [filterTag, setFilterTag] = useState('All');
 
             const fetchData = async () => {
                 const { data: cols } = await supabase.from('columns').select('*').order('order_index');
                 const { data: tsk } = await supabase.from('tasks').select('*').order('created_at');
                 setColumns(cols || []);
                 setTasks(tsk || []);
+                
+                // Görevlerden mevcut etiketleri çıkar
                 const tags = new Set();
                 tsk?.forEach(t => t.tags?.forEach(tag => tags.add(tag)));
                 setAvailableTags(Array.from(tags));
@@ -83,72 +74,32 @@
 
             useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
 
-            // --- BİLDİRİM MANTIĞI ---
-            const addToast = (msg) => {
-                const id = Date.now();
-                setToasts(prev => [...prev, { id, msg }]);
-                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-            };
-
-            const sendNotification = (type, task, memberId) => {
-                const member = TEAM.find(m => m.id === memberId);
-                if (!member || !member.email) return;
-
-                const templateParams = {
-                    to_name: member.name,
-                    to_email: member.email,
-                    message_type: type === 'assignment' ? "Yeni Görev Ataması" : "Gecikmiş Görev!",
-                    task_title: task.text,
-                    due_date: task.end_date || "Belirtilmedi",
-                    status: task.status
-                };
-
-                emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-                    .then(() => addToast(`${member.name} kişisine mail gönderildi.`))
-                    .catch((err) => console.error("Mail Hatası:", err));
-            };
-
-            const checkOverdueTasks = () => {
-                const now = new Date();
-                let count = 0;
-                tasks.forEach(task => {
-                    const isClosed = ['done', 'tamamlandi', 'iptal', 'cancelled'].includes(task.status?.toLowerCase());
-                    if (task.end_date && new Date(task.end_date) < now && !isClosed) {
-                        task.assignee?.forEach(mId => {
-                            sendNotification('overdue', task, mId);
-                            count++;
-                        });
-                    }
-                });
-                if (count === 0) addToast("Geciken görev bulunamadı.");
-            };
-
             const updateTask = async (taskId, updates) => {
-                const oldTask = tasks.find(t => t.id === taskId);
                 const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
                 if (!error) {
                     fetchData();
                     if (selectedTask?.id === taskId) setSelectedTask(prev => ({ ...prev, ...updates }));
-                    
-                    // Yeni birisi atandıysa mail at
-                    if (updates.assignee) {
-                        const newOnes = updates.assignee.filter(id => !oldTask.assignee?.includes(id));
-                        newOnes.forEach(mId => sendNotification('assignment', { ...oldTask, ...updates }, mId));
-                    }
                 }
             };
 
             const getFilteredTasks = () => {
-                let f = [...tasks];
-                if (filterAssignee !== 'All') f = f.filter(t => (t.assignee || []).includes(filterAssignee));
-                if (filterTag !== 'All') f = f.filter(t => (t.tags || []).includes(filterTag));
-                return f;
+                let filtered = [...tasks];
+                if (filterAssignee !== 'All') filtered = filtered.filter(t => (t.assignee || []).includes(filterAssignee));
+                if (filterTag !== 'All') filtered = filtered.filter(t => (t.tags || []).includes(filterTag));
+                if (filterTime !== 'All') {
+                    const now = new Date();
+                    const diff = filterTime === 'week' ? 7 : 30;
+                    const limit = new Date(now.setDate(now.getDate() + diff));
+                    filtered = filtered.filter(t => t.end_date && new Date(t.end_date) <= limit && new Date(t.end_date) >= new Date());
+                }
+                return filtered;
             };
 
             const isQuartz = theme === 'quartz';
             const bodyStyle = isQuartz ? "quartz-body" : "dark-body";
             const colStyle = isQuartz ? "quartz-column" : "dark-column";
             const cardStyle = isQuartz ? "quartz-card wpf-card-shadow" : "dark-card";
+            const headerStyle = isQuartz ? "bg-white border-b border-[#DCDFE4]" : "bg-[#1a1a1c] border-b border-zinc-800";
 
             if (!isLoggedIn) {
                 return (
@@ -156,48 +107,55 @@
                         <div className="bg-white p-10 rounded-xl w-full max-w-sm shadow-2xl">
                             <h2 className="text-xl font-bold text-[#172B4D] mb-8 text-center uppercase tracking-tighter italic">RASG 2026</h2>
                             <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hata!"); }} className="space-y-4">
-                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none focus:border-[#0052CC]" />
-                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none focus:border-[#0052CC]" />
-                                <button className="w-full bg-[#0052CC] p-3 rounded font-bold text-white hover:bg-[#0747A6] transition">GİRİŞ YAP</button>
+                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none" />
+                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none" />
+                                <button className="w-full bg-[#0052CC] p-3 rounded font-bold text-white hover:bg-[#0747A6] transition">SİSTEME GİRİŞ</button>
                             </form>
                         </div>
                     </div>
                 );
             }
 
+            const filteredTasks = getFilteredTasks();
+
             return (
                 <div className={`h-screen flex flex-col ${bodyStyle}`}>
                     {/* Header */}
-                    <header className={`p-4 flex justify-between items-center z-10 ${isQuartz ? 'bg-white border-b' : 'bg-[#1a1a1c] border-b border-zinc-800'}`}>
+                    <header className={`${headerStyle} p-4 flex justify-between items-center z-10`}>
                         <div className="flex items-center gap-8">
-                            <h1 className="font-bold italic text-lg tracking-tight">RASG 2026</h1>
-                            <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest">
-                                <button onClick={() => setCurrentView('board')} className={currentView === 'board' ? 'text-[#0052CC] border-b-2 border-[#0052CC]' : 'text-zinc-500'}>BOARD</button>
-                                <button onClick={() => setCurrentView('list')} className={currentView === 'list' ? 'text-[#0052CC] border-b-2 border-[#0052CC]' : 'text-zinc-500'}>LIST</button>
+                            <h1 className={`font-bold italic text-lg ${isQuartz ? 'text-[#172B4D]' : 'text-white'}`}>RASG 2026</h1>
+                            <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest">
+                                <button onClick={() => setCurrentView('board')} className={`pb-1 transition-all ${currentView === 'board' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>BOARD</button>
+                                <button onClick={() => setCurrentView('list')} className={`pb-1 transition-all ${currentView === 'list' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>LIST</button>
                             </div>
                         </div>
 
                         <div className="flex gap-2 items-center">
-                            <button onClick={checkOverdueTasks} className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded text-[10px] font-bold border border-amber-200 hover:bg-amber-200 transition">
-                                <i className="fas fa-bell mr-1"></i> GECİKMELERİ DENETLE
-                            </button>
-
-                            <div className={`flex p-1 rounded-md ${isQuartz ? 'bg-[#EBECF0]' : 'bg-black'}`}>
-                                <button onClick={() => setTheme('quartz')} className={`px-3 py-1 rounded text-[10px] font-bold ${isQuartz ? 'bg-white shadow-sm text-[#0052CC]' : 'text-zinc-500'}`}>QUARTZ</button>
-                                <button onClick={() => setTheme('dark')} className={`px-3 py-1 rounded text-[10px] font-bold ${!isQuartz ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>DARK</button>
+                            {/* Tema Switcher */}
+                            <div className={`flex p-1 rounded-md mr-4 ${isQuartz ? 'bg-[#EBECF0]' : 'bg-black'}`}>
+                                <button onClick={() => setTheme('quartz')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isQuartz ? 'bg-white shadow-sm text-[#0052CC]' : 'text-zinc-500'}`}>QUARTZ</button>
+                                <button onClick={() => setTheme('dark')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${!isQuartz ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>DARK</button>
                             </div>
 
-                            <select onChange={(e) => setFilterTag(e.target.value)} className="text-[10px] font-bold px-2 py-1.5 rounded border bg-transparent outline-none">
-                                <option value="All">Etiketler</option>
-                                {availableTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-                            </select>
+                            {/* Filtreler */}
+                            <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
+                                <select onChange={(e) => setFilterTag(e.target.value)} className={`text-[10px] font-bold px-2 py-1.5 rounded border outline-none ${isQuartz ? 'bg-white border-[#DFE1E6] text-[#172B4D]' : 'bg-zinc-800 border-zinc-700'}`}>
+                                    <option value="All">Tüm Etiketler</option>
+                                    {availableTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+                                </select>
 
-                            <button onClick={async () => { const t = prompt("Görev?"); if(t) await supabase.from('tasks').insert([{text:t, status: columns[0].slug, tags: []}]); fetchData(); }} className="bg-[#0052CC] text-white px-4 py-2 rounded text-xs font-bold shadow-md hover:bg-[#0747A6]">+ TASK</button>
+                                <select onChange={(e) => setFilterAssignee(e.target.value)} className={`text-[10px] font-bold px-2 py-1.5 rounded border outline-none ${isQuartz ? 'bg-white border-[#DFE1E6] text-[#172B4D]' : 'bg-zinc-800 border-zinc-700'}`}>
+                                    <option value="All">Kişiler</option>
+                                    {TEAM.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                            </div>
+
+                            <button onClick={async () => { const t = prompt("Görev?"); if(t) await supabase.from('tasks').insert([{text:t, status: columns[0].slug, tags: []}]); fetchData(); }} className="bg-[#0052CC] hover:bg-[#0747A6] text-white px-4 py-2 rounded text-xs font-bold transition shadow-md">+ TASK</button>
                             <button onClick={() => setIsLoggedIn(false)} className="text-zinc-400 hover:text-red-500 ml-2"><i className="fas fa-power-off"></i></button>
                         </div>
                     </header>
 
-                    {/* Main */}
+                    {/* Main Content */}
                     <main className="flex-1 overflow-hidden">
                         {currentView === 'board' ? (
                             <div className="flex h-full p-6 gap-5 overflow-x-auto custom-scrollbar">
@@ -208,35 +166,46 @@
                                         onDragOver={(e) => e.preventDefault()}
                                         onDrop={() => { if(draggedTaskId) updateTask(draggedTaskId, { status: col.slug }); setDraggedTaskId(null); }}
                                     >
-                                        <div className="mb-4 flex justify-between items-center opacity-70">
-                                            <span className="text-[12px] font-bold uppercase">{col.title}</span>
-                                            <span className="text-[10px] font-black">{getFilteredTasks().filter(t => t.status === col.slug).length}</span>
+                                        <div className="mb-4 px-1 flex justify-between items-center">
+                                            <span className="text-[12px] font-bold uppercase tracking-tight opacity-70">{col.title}</span>
+                                            <span className="text-[10px] font-black opacity-30 bg-black/10 px-2 py-0.5 rounded-full">{filteredTasks.filter(t => t.status === col.slug).length}</span>
                                         </div>
 
                                         <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
-                                            {getFilteredTasks().filter(t => t.status === col.slug).map(task => (
+                                            {filteredTasks.filter(t => t.status === col.slug).map(task => (
                                                 <div 
                                                     key={task.id} 
                                                     draggable 
                                                     onDragStart={() => setDraggedTaskId(task.id)}
                                                     onClick={() => setSelectedTask(task)} 
-                                                    className={`${cardStyle} p-4 rounded-md cursor-grab active:cursor-grabbing hover:shadow-md transition-all`}
+                                                    className={`${cardStyle} p-4 rounded-md cursor-grab active:cursor-grabbing hover:shadow-md transition-all group`}
                                                 >
-                                                    <div className="flex flex-wrap gap-1 mb-2">
-                                                        {(task.tags || []).map(tag => <span key={tag} className="tag-badge bg-[#0052CC]/10 text-[#0052CC]">{tag}</span>)}
+                                                    {/* Etiketler (XAML Label Stili) */}
+                                                    <div className="flex flex-wrap gap-1 mb-3">
+                                                        {(task.tags || []).map(tag => (
+                                                            <span key={tag} className="tag-badge bg-[#0052CC]/10 text-[#0052CC] border border-[#0052CC]/20">{tag}</span>
+                                                        ))}
                                                     </div>
+
                                                     <p className="text-[14px] leading-snug mb-4 font-medium">{task.text}</p>
-                                                    <div className="flex justify-between items-center pt-2 border-t border-black/5">
+                                                    
+                                                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="w-3.5 h-3.5 bg-[#42526E] rounded-sm flex items-center justify-center text-[8px] text-white">✓</div>
+                                                            <div className="w-4 h-4 bg-[#42526E] rounded-sm flex items-center justify-center">
+                                                                <span className="text-white text-[8px]">✓</span>
+                                                            </div>
                                                             <span className="text-[10px] font-bold text-[#5E6C84]">ID-{task.id.toString().slice(-3)}</span>
                                                         </div>
                                                         <div className="flex -space-x-1.5">
-                                                            {(task.assignee || []).map(id => <div key={id} className={`w-5 h-5 rounded-full border-2 ${isQuartz ? 'border-white' : 'border-[#242427]'} ${TEAM.find(x => x.id === id)?.color} text-[7px] flex items-center justify-center font-bold text-white`}>{id}</div>)}
+                                                            {(task.assignee || []).map(id => {
+                                                                const m = TEAM.find(x => x.id === id);
+                                                                return <div key={id} className={`w-5 h-5 rounded-full border ${isQuartz ? 'border-white' : 'border-[#242427]'} ${m?.color} text-[7px] flex items-center justify-center font-bold text-white`}>{id}</div>
+                                                            })}
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
+                                            <button onClick={() => { const t = prompt("Görev?"); if(t) supabase.from('tasks').insert([{text:t, status: col.slug, tags: []}]).then(fetchData); }} className={`w-full py-2 text-[11px] font-bold rounded-md text-left px-2 opacity-40 hover:opacity-100 transition-opacity ${isQuartz ? 'text-[#5E6C84]' : 'text-zinc-500'}`}>+ Kart Ekle...</button>
                                         </div>
                                     </div>
                                 ))}
@@ -245,102 +214,131 @@
                             /* List View */
                             <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto custom-scrollbar">
                                 {columns.map(col => {
-                                    const colTasks = getFilteredTasks().filter(t => t.status === col.slug);
+                                    const colTasks = filteredTasks.filter(t => t.status === col.slug);
                                     if (colTasks.length === 0) return null;
                                     return (
-                                        <div key={col.id} className="mb-6">
-                                            <div className="text-[11px] font-black text-[#5E6C84] uppercase border-b pb-1 mb-2">{col.title}</div>
-                                            <div className={`${cardStyle} rounded overflow-hidden divide-y divide-black/5`}>
+                                        <div key={col.id} className="mb-8">
+                                            <div className="text-[11px] font-black text-[#5E6C84] uppercase border-b border-[#DFE1E6] mb-2 pb-1">{col.title}</div>
+                                            <div className={`${cardStyle} rounded border divide-y ${isQuartz ? 'divide-[#DFE1E6]' : 'divide-zinc-800'}`}>
                                                 {colTasks.map(task => (
                                                     <div key={task.id} onClick={() => setSelectedTask(task)} className="p-3 hover:bg-black/5 flex items-center cursor-pointer transition-colors">
-                                                        <span className="flex-1 text-[14px] font-medium">{task.text}</span>
-                                                        <div className="flex gap-1 mr-4">{(task.tags || []).map(tag => <span key={tag} className="tag-badge bg-black/5 text-zinc-500">{tag}</span>)}</div>
-                                                        <div className="flex -space-x-1">{(task.assignee || []).map(id => <div key={id} className="w-6 h-6 rounded-full bg-[#0052CC] text-white text-[8px] flex items-center justify-center font-bold">{id}</div>)}</div>
+                                                        <div className="flex-1 flex items-center gap-4">
+                                                            <span className="text-[14px] font-medium">{task.text}</span>
+                                                            <div className="flex gap-1">
+                                                                {(task.tags || []).map(tag => <span key={tag} className="tag-badge bg-black/5 text-zinc-500">{tag}</span>)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex -space-x-1">
+                                                            {(task.assignee || []).map(id => <div key={id} className="w-6 h-6 rounded-full bg-[#0052CC] text-white text-[8px] flex items-center justify-center font-bold">{id}</div>)}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-                                    );
+                                    )
                                 })}
                             </div>
                         )}
                     </main>
 
-                    {/* Toasts */}
-                    <div className="fixed bottom-6 right-6 z-[200] space-y-2">
-                        {toasts.map(t => (
-                            <div key={t.id} className="toast-in bg-[#172B4D] text-white px-4 py-3 rounded-lg shadow-2xl text-xs font-bold flex items-center gap-3">
-                                <i className="fas fa-info-circle text-[#0052CC]"></i> {t.msg}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Modal */}
+                    {/* Task Detail Modal */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
                             <div className={`${isQuartz ? 'bg-white' : 'bg-[#1c1c1e]'} w-full max-w-xl h-full shadow-2xl p-8 flex flex-col animate-in slide-in-from-right duration-200`}>
-                                <div className="flex justify-between items-center mb-10">
-                                    <span className="text-[11px] font-bold text-[#5E6C84]">KART DETAYI / ID-{selectedTask.id.toString().slice(-3)}</span>
-                                    <button onClick={() => setSelectedTask(null)} className="text-[#5E6C84] hover:text-black"><i className="fas fa-times text-xl"></i></button>
+                                <div className="flex justify-between items-center mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-5 h-5 bg-[#0052CC] rounded flex items-center justify-center text-white text-[10px]">✓</div>
+                                        <span className="text-[11px] font-bold text-[#5E6C84]">KART DETAYI / ID-{selectedTask.id.toString().slice(-3)}</span>
+                                    </div>
+                                    <div className="flex gap-4 items-center">
+                                        <button onClick={async () => { if(confirm("Silinsin mi?")) { await supabase.from('tasks').delete().eq('id', selectedTask.id); setSelectedTask(null); fetchData(); } }} className="text-[#5E6C84] hover:text-red-600"><i className="fas fa-trash-alt"></i></button>
+                                        <button onClick={() => setSelectedTask(null)} className="text-[#5E6C84] hover:text-black transition-colors"><i className="fas fa-times text-xl"></i></button>
+                                    </div>
                                 </div>
 
-                                <textarea className="text-xl font-bold bg-transparent outline-none w-full mb-8 border-b border-black/5 p-2" defaultValue={selectedTask.text} onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} />
+                                <textarea 
+                                    className={`text-xl font-bold bg-transparent outline-none w-full mb-8 border-b p-2 ${isQuartz ? 'text-[#172B4D] border-[#DFE1E6] focus:border-[#0052CC]' : 'text-white border-zinc-700'}`} 
+                                    defaultValue={selectedTask.text} 
+                                    onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} 
+                                />
 
                                 <div className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
+                                    {/* Dinamik Etiket Alanı */}
                                     <div>
-                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-3 uppercase">ETİKETLER</label>
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-3 uppercase tracking-widest">ETİKETLER</label>
                                         <div className="flex flex-wrap gap-2 mb-3">
                                             {availableTags.map(tag => {
-                                                const has = (selectedTask.tags || []).includes(tag);
+                                                const isAttached = (selectedTask.tags || []).includes(tag);
                                                 return (
-                                                    <button key={tag} onClick={() => {
-                                                        const next = has ? selectedTask.tags.filter(x => x !== tag) : [...(selectedTask.tags || []), tag];
-                                                        updateTask(selectedTask.id, { tags: next });
-                                                    }} className={`tag-badge border transition-all ${has ? 'bg-[#0052CC] text-white border-transparent' : 'border-black/10'}`}>
+                                                    <button 
+                                                        key={tag} 
+                                                        onClick={() => {
+                                                            const current = selectedTask.tags || [];
+                                                            const next = isAttached ? current.filter(t => t !== tag) : [...current, tag];
+                                                            updateTask(selectedTask.id, { tags: next });
+                                                        }}
+                                                        className={`tag-badge border transition-all ${isAttached ? 'bg-[#0052CC] text-white border-transparent' : 'bg-transparent text-[#5E6C84] border-[#DFE1E6] hover:border-[#5E6C84]'}`}
+                                                    >
                                                         {tag}
                                                     </button>
                                                 )
                                             })}
                                         </div>
-                                        <input type="text" placeholder="Yeni etiket..." className="w-full p-2 text-xs rounded border border-black/5 bg-transparent" onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && e.target.value.trim()) {
-                                                const next = [...(selectedTask.tags || []), e.target.value.trim()];
-                                                updateTask(selectedTask.id, { tags: next });
-                                                e.target.value = "";
-                                            }
-                                        }} />
+                                        <div className="flex gap-2">
+                                            <input 
+                                                id="new-tag-input"
+                                                type="text" 
+                                                placeholder="Yeni etiket yazıp Enter'a basın..." 
+                                                className={`flex-1 text-xs p-2 rounded border outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700 text-white'}`}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && e.target.value.trim()) {
+                                                        const newTag = e.target.value.trim();
+                                                        const current = selectedTask.tags || [];
+                                                        if (!current.includes(newTag)) {
+                                                            updateTask(selectedTask.id, { tags: [...current, newTag] });
+                                                        }
+                                                        e.target.value = "";
+                                                    }
+                                                }}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2 uppercase">BİTİŞ TARİHİ</label>
-                                            <input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className="w-full p-2 rounded border border-black/5 bg-transparent text-sm" />
+                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">BİTİŞ TARİHİ</label>
+                                            <input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className={`w-full p-2 rounded border text-sm outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700'}`} />
                                         </div>
                                         <div>
-                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2 uppercase">DURUM</label>
-                                            <select value={selectedTask.status} onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })} className="w-full p-2 rounded border border-black/5 bg-transparent text-sm">
+                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">DURUM</label>
+                                            <select value={selectedTask.status} onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })} className={`w-full p-2 rounded border text-sm outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700'}`}>
                                                 {columns.map(c => <option key={c.id} value={c.slug}>{c.title}</option>)}
                                             </select>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2 uppercase tracking-widest">ATANANLAR</label>
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">ATANANLAR</label>
                                         <div className="flex gap-2">
                                             {TEAM.map(u => {
                                                 const active = (selectedTask.assignee || []).includes(u.id);
                                                 return (
                                                     <button key={u.id} onClick={() => {
                                                         const cur = selectedTask.assignee || [];
-                                                        const next = active ? cur.filter(x => x !== u.id) : [...cur, u.id];
+                                                        const next = cur.includes(u.id) ? cur.filter(x => x !== u.id) : [...cur, u.id];
                                                         updateTask(selectedTask.id, { assignee: next });
-                                                    }} className={`px-4 py-2 rounded text-[10px] font-bold border transition-all ${active ? 'bg-[#0052CC] text-white border-transparent shadow-lg' : 'border-black/5 opacity-50 hover:opacity-100'}`}>{u.name}</button>
+                                                    }} className={`px-4 py-2 rounded text-[10px] font-bold border transition-all ${active ? 'bg-[#0052CC] border-transparent text-white' : 'border-[#DFE1E6] text-[#5E6C84] hover:bg-[#EBECF0]'}`}>{u.name}</button>
                                                 )
                                             })}
                                         </div>
                                     </div>
 
-                                    <button onClick={() => setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-4 rounded font-bold text-xs shadow-xl hover:bg-[#0747A6] transition-all">KAYDET VE KAPAT</button>
+                                    <div>
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">NOTLAR</label>
+                                        <textarea className={`w-full rounded border p-4 text-xs min-h-[120px] outline-none leading-relaxed ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700 text-zinc-300'}`} defaultValue={selectedTask.description} onBlur={(e) => updateTask(selectedTask.id, { description: e.target.value })} placeholder="Ekstra notlar..." />
+                                    </div>
+
+                                    <button onClick={() => setSelectedTask(null)} className="w-full bg-[#0052CC] hover:bg-[#0747A6] text-white p-4 rounded font-bold text-xs shadow-lg transition-all">KAYDET VE KAPAT</button>
                                 </div>
                             </div>
                         </div>
