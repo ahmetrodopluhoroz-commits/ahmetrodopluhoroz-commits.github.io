@@ -1,111 +1,354 @@
-<div id="filter-section" style="margin-bottom: 20px; padding: 10px; background: #f4f4f4;">
-    <strong>Etikete Göre Filtrele:</strong>
-    <select id="tag-filter" onchange="filterTasks()">
-        <option value="all">Tüm Tasklar</option>
-    </select>
-</div>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RASG | 2026 Ultimate Dashboard (v2.4)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; transition: all 0.3s ease; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .column-width { min-width: 320px; width: 320px; }
+        .modal-overlay { background-color: rgba(9, 30, 66, 0.54); backdrop-filter: blur(4px); z-index: 100; }
+        .wpf-card-shadow { box-shadow: 0 1px 2px rgba(9, 30, 66, 0.15); }
+        .quartz-body { background-color: #F4F5F7; color: #172B4D; }
+        .quartz-column { background-color: #EBECF0; }
+        .quartz-card { background-color: #FFFFFF; border: 1px solid #EBECF0; color: #172B4D; }
+        .dark-body { background-color: #0c0c0e; color: #d1d1d1; }
+        .dark-column { background-color: #1a1a1c; }
+        .dark-card { background-color: #242427; border: 1px solid #333; color: #eee; }
+        .tag-badge { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-<div id="add-task-form" style="border: 1px solid #ccc; padding: 15px; margin-bottom: 20px;">
-    <h3>Yeni Task Ekle</h3>
-    <input type="text" id="task-title" placeholder="Task Başlığı">
-    
-    <div style="margin-top: 10px;">
-        <input type="text" id="new-tag-input" placeholder="Yeni etiket yaz (Örn: Proje)">
-        <button onclick="createTag()">Etiket Oluştur/Ekle</button>
-    </div>
-    
-    <div id="active-tags-container" style="margin-top: 10px;">
-        </div>
-    
-    <button onclick="saveTask()" style="margin-top: 15px; background: green; color: white;">Taskı Kaydet</button>
-</div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-<div id="task-list-container">
-    <h3>Tasklar</h3>
-    <ul id="task-list"></ul>
-</div>
+        const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
+        const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-<script>
-    let allTags = ["PROJE", "TALEP"]; // Başlangıç etiketleri
-    let currentTaskTags = []; // O an oluşturulan taska eklenen etiketler
-    let tasks = []; // Kaydedilen tüm tasklar
+        const TEAM = [
+            { id: 'AR', name: 'Ahmet', color: 'bg-[#0052CC]' },
+            { id: 'BD', name: 'Berkan', color: 'bg-orange-500' },
+            { id: 'YE', name: 'Yiğit', color: 'bg-purple-500' }
+        ];
 
-    // Sayfa açıldığında filtreyi doldur
-    window.onload = updateFilterDropdown;
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [username, setUsername] = useState("");
+            const [password, setPassword] = useState("");
+            const [tasks, setTasks] = useState([]);
+            const [columns, setColumns] = useState([]);
+            const [availableTags, setAvailableTags] = useState([]); // Sistemdeki tüm etiketler
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [currentView, setCurrentView] = useState('board');
+            const [theme, setTheme] = useState('quartz');
+            const [draggedTaskId, setDraggedTaskId] = useState(null);
+            
+            // Filtreler
+            const [filterAssignee, setFilterAssignee] = useState('All');
+            const [filterTime, setFilterTime] = useState('All');
+            const [filterTag, setFilterTag] = useState('All');
 
-    // Yeni etiket oluşturma ve mevcut taska ekleme
-    function createTag() {
-        let tagInput = document.getElementById('new-tag-input');
-        let tagValue = tagInput.value.trim().toUpperCase();
+            const fetchData = async () => {
+                const { data: cols } = await supabase.from('columns').select('*').order('order_index');
+                const { data: tsk } = await supabase.from('tasks').select('*').order('created_at');
+                setColumns(cols || []);
+                setTasks(tsk || []);
+                
+                // Görevlerden mevcut etiketleri çıkar
+                const tags = new Set();
+                tsk?.forEach(t => t.tags?.forEach(tag => tags.add(tag)));
+                setAvailableTags(Array.from(tags));
+            };
 
-        if (tagValue === "") return;
+            useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
 
-        // Genel etiket havuzuna ekle (yoksa)
-        if (!allTags.includes(tagValue)) {
-            allTags.push(tagValue);
-            updateFilterDropdown();
+            const updateTask = async (taskId, updates) => {
+                const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+                if (!error) {
+                    fetchData();
+                    if (selectedTask?.id === taskId) setSelectedTask(prev => ({ ...prev, ...updates }));
+                }
+            };
+
+            const getFilteredTasks = () => {
+                let filtered = [...tasks];
+                if (filterAssignee !== 'All') filtered = filtered.filter(t => (t.assignee || []).includes(filterAssignee));
+                if (filterTag !== 'All') filtered = filtered.filter(t => (t.tags || []).includes(filterTag));
+                if (filterTime !== 'All') {
+                    const now = new Date();
+                    const diff = filterTime === 'week' ? 7 : 30;
+                    const limit = new Date(now.setDate(now.getDate() + diff));
+                    filtered = filtered.filter(t => t.end_date && new Date(t.end_date) <= limit && new Date(t.end_date) >= new Date());
+                }
+                return filtered;
+            };
+
+            const isQuartz = theme === 'quartz';
+            const bodyStyle = isQuartz ? "quartz-body" : "dark-body";
+            const colStyle = isQuartz ? "quartz-column" : "dark-column";
+            const cardStyle = isQuartz ? "quartz-card wpf-card-shadow" : "dark-card";
+            const headerStyle = isQuartz ? "bg-white border-b border-[#DCDFE4]" : "bg-[#1a1a1c] border-b border-zinc-800";
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-[#091E42]">
+                        <div className="bg-white p-10 rounded-xl w-full max-w-sm shadow-2xl">
+                            <h2 className="text-xl font-bold text-[#172B4D] mb-8 text-center uppercase tracking-tighter italic">RASG 2026</h2>
+                            <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hata!"); }} className="space-y-4">
+                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none" />
+                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none" />
+                                <button className="w-full bg-[#0052CC] p-3 rounded font-bold text-white hover:bg-[#0747A6] transition">SİSTEME GİRİŞ</button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            const filteredTasks = getFilteredTasks();
+
+            return (
+                <div className={`h-screen flex flex-col ${bodyStyle}`}>
+                    {/* Header */}
+                    <header className={`${headerStyle} p-4 flex justify-between items-center z-10`}>
+                        <div className="flex items-center gap-8">
+                            <h1 className={`font-bold italic text-lg ${isQuartz ? 'text-[#172B4D]' : 'text-white'}`}>RASG 2026</h1>
+                            <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest">
+                                <button onClick={() => setCurrentView('board')} className={`pb-1 transition-all ${currentView === 'board' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>BOARD</button>
+                                <button onClick={() => setCurrentView('list')} className={`pb-1 transition-all ${currentView === 'list' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>LIST</button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 items-center">
+                            {/* Tema Switcher */}
+                            <div className={`flex p-1 rounded-md mr-4 ${isQuartz ? 'bg-[#EBECF0]' : 'bg-black'}`}>
+                                <button onClick={() => setTheme('quartz')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isQuartz ? 'bg-white shadow-sm text-[#0052CC]' : 'text-zinc-500'}`}>QUARTZ</button>
+                                <button onClick={() => setTheme('dark')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${!isQuartz ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>DARK</button>
+                            </div>
+
+                            {/* Filtreler */}
+                            <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
+                                <select onChange={(e) => setFilterTag(e.target.value)} className={`text-[10px] font-bold px-2 py-1.5 rounded border outline-none ${isQuartz ? 'bg-white border-[#DFE1E6] text-[#172B4D]' : 'bg-zinc-800 border-zinc-700'}`}>
+                                    <option value="All">Tüm Etiketler</option>
+                                    {availableTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+                                </select>
+
+                                <select onChange={(e) => setFilterAssignee(e.target.value)} className={`text-[10px] font-bold px-2 py-1.5 rounded border outline-none ${isQuartz ? 'bg-white border-[#DFE1E6] text-[#172B4D]' : 'bg-zinc-800 border-zinc-700'}`}>
+                                    <option value="All">Kişiler</option>
+                                    {TEAM.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                            </div>
+
+                            <button onClick={async () => { const t = prompt("Görev?"); if(t) await supabase.from('tasks').insert([{text:t, status: columns[0].slug, tags: []}]); fetchData(); }} className="bg-[#0052CC] hover:bg-[#0747A6] text-white px-4 py-2 rounded text-xs font-bold transition shadow-md">+ TASK</button>
+                            <button onClick={() => setIsLoggedIn(false)} className="text-zinc-400 hover:text-red-500 ml-2"><i className="fas fa-power-off"></i></button>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-1 overflow-hidden">
+                        {currentView === 'board' ? (
+                            <div className="flex h-full p-6 gap-5 overflow-x-auto custom-scrollbar">
+                                {columns.map(col => (
+                                    <div 
+                                        key={col.id} 
+                                        className={`column-width flex flex-col p-3 rounded-xl ${colStyle}`}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={() => { if(draggedTaskId) updateTask(draggedTaskId, { status: col.slug }); setDraggedTaskId(null); }}
+                                    >
+                                        <div className="mb-4 px-1 flex justify-between items-center">
+                                            <span className="text-[12px] font-bold uppercase tracking-tight opacity-70">{col.title}</span>
+                                            <span className="text-[10px] font-black opacity-30 bg-black/10 px-2 py-0.5 rounded-full">{filteredTasks.filter(t => t.status === col.slug).length}</span>
+                                        </div>
+
+                                        <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
+                                            {filteredTasks.filter(t => t.status === col.slug).map(task => (
+                                                <div 
+                                                    key={task.id} 
+                                                    draggable 
+                                                    onDragStart={() => setDraggedTaskId(task.id)}
+                                                    onClick={() => setSelectedTask(task)} 
+                                                    className={`${cardStyle} p-4 rounded-md cursor-grab active:cursor-grabbing hover:shadow-md transition-all group`}
+                                                >
+                                                    {/* Etiketler (XAML Label Stili) */}
+                                                    <div className="flex flex-wrap gap-1 mb-3">
+                                                        {(task.tags || []).map(tag => (
+                                                            <span key={tag} className="tag-badge bg-[#0052CC]/10 text-[#0052CC] border border-[#0052CC]/20">{tag}</span>
+                                                        ))}
+                                                    </div>
+
+                                                    <p className="text-[14px] leading-snug mb-4 font-medium">{task.text}</p>
+                                                    
+                                                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-4 h-4 bg-[#42526E] rounded-sm flex items-center justify-center">
+                                                                <span className="text-white text-[8px]">✓</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-[#5E6C84]">ID-{task.id.toString().slice(-3)}</span>
+                                                        </div>
+                                                        <div className="flex -space-x-1.5">
+                                                            {(task.assignee || []).map(id => {
+                                                                const m = TEAM.find(x => x.id === id);
+                                                                return <div key={id} className={`w-5 h-5 rounded-full border ${isQuartz ? 'border-white' : 'border-[#242427]'} ${m?.color} text-[7px] flex items-center justify-center font-bold text-white`}>{id}</div>
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <button onClick={() => { const t = prompt("Görev?"); if(t) supabase.from('tasks').insert([{text:t, status: col.slug, tags: []}]).then(fetchData); }} className={`w-full py-2 text-[11px] font-bold rounded-md text-left px-2 opacity-40 hover:opacity-100 transition-opacity ${isQuartz ? 'text-[#5E6C84]' : 'text-zinc-500'}`}>+ Kart Ekle...</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            /* List View */
+                            <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto custom-scrollbar">
+                                {columns.map(col => {
+                                    const colTasks = filteredTasks.filter(t => t.status === col.slug);
+                                    if (colTasks.length === 0) return null;
+                                    return (
+                                        <div key={col.id} className="mb-8">
+                                            <div className="text-[11px] font-black text-[#5E6C84] uppercase border-b border-[#DFE1E6] mb-2 pb-1">{col.title}</div>
+                                            <div className={`${cardStyle} rounded border divide-y ${isQuartz ? 'divide-[#DFE1E6]' : 'divide-zinc-800'}`}>
+                                                {colTasks.map(task => (
+                                                    <div key={task.id} onClick={() => setSelectedTask(task)} className="p-3 hover:bg-black/5 flex items-center cursor-pointer transition-colors">
+                                                        <div className="flex-1 flex items-center gap-4">
+                                                            <span className="text-[14px] font-medium">{task.text}</span>
+                                                            <div className="flex gap-1">
+                                                                {(task.tags || []).map(tag => <span key={tag} className="tag-badge bg-black/5 text-zinc-500">{tag}</span>)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex -space-x-1">
+                                                            {(task.assignee || []).map(id => <div key={id} className="w-6 h-6 rounded-full bg-[#0052CC] text-white text-[8px] flex items-center justify-center font-bold">{id}</div>)}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Task Detail Modal */}
+                    {selectedTask && (
+                        <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
+                            <div className={`${isQuartz ? 'bg-white' : 'bg-[#1c1c1e]'} w-full max-w-xl h-full shadow-2xl p-8 flex flex-col animate-in slide-in-from-right duration-200`}>
+                                <div className="flex justify-between items-center mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-5 h-5 bg-[#0052CC] rounded flex items-center justify-center text-white text-[10px]">✓</div>
+                                        <span className="text-[11px] font-bold text-[#5E6C84]">KART DETAYI / ID-{selectedTask.id.toString().slice(-3)}</span>
+                                    </div>
+                                    <div className="flex gap-4 items-center">
+                                        <button onClick={async () => { if(confirm("Silinsin mi?")) { await supabase.from('tasks').delete().eq('id', selectedTask.id); setSelectedTask(null); fetchData(); } }} className="text-[#5E6C84] hover:text-red-600"><i className="fas fa-trash-alt"></i></button>
+                                        <button onClick={() => setSelectedTask(null)} className="text-[#5E6C84] hover:text-black transition-colors"><i className="fas fa-times text-xl"></i></button>
+                                    </div>
+                                </div>
+
+                                <textarea 
+                                    className={`text-xl font-bold bg-transparent outline-none w-full mb-8 border-b p-2 ${isQuartz ? 'text-[#172B4D] border-[#DFE1E6] focus:border-[#0052CC]' : 'text-white border-zinc-700'}`} 
+                                    defaultValue={selectedTask.text} 
+                                    onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} 
+                                />
+
+                                <div className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
+                                    {/* Dinamik Etiket Alanı */}
+                                    <div>
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-3 uppercase tracking-widest">ETİKETLER</label>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {availableTags.map(tag => {
+                                                const isAttached = (selectedTask.tags || []).includes(tag);
+                                                return (
+                                                    <button 
+                                                        key={tag} 
+                                                        onClick={() => {
+                                                            const current = selectedTask.tags || [];
+                                                            const next = isAttached ? current.filter(t => t !== tag) : [...current, tag];
+                                                            updateTask(selectedTask.id, { tags: next });
+                                                        }}
+                                                        className={`tag-badge border transition-all ${isAttached ? 'bg-[#0052CC] text-white border-transparent' : 'bg-transparent text-[#5E6C84] border-[#DFE1E6] hover:border-[#5E6C84]'}`}
+                                                    >
+                                                        {tag}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                id="new-tag-input"
+                                                type="text" 
+                                                placeholder="Yeni etiket yazıp Enter'a basın..." 
+                                                className={`flex-1 text-xs p-2 rounded border outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700 text-white'}`}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && e.target.value.trim()) {
+                                                        const newTag = e.target.value.trim();
+                                                        const current = selectedTask.tags || [];
+                                                        if (!current.includes(newTag)) {
+                                                            updateTask(selectedTask.id, { tags: [...current, newTag] });
+                                                        }
+                                                        e.target.value = "";
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">BİTİŞ TARİHİ</label>
+                                            <input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className={`w-full p-2 rounded border text-sm outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700'}`} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">DURUM</label>
+                                            <select value={selectedTask.status} onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })} className={`w-full p-2 rounded border text-sm outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700'}`}>
+                                                {columns.map(c => <option key={c.id} value={c.slug}>{c.title}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">ATANANLAR</label>
+                                        <div className="flex gap-2">
+                                            {TEAM.map(u => {
+                                                const active = (selectedTask.assignee || []).includes(u.id);
+                                                return (
+                                                    <button key={u.id} onClick={() => {
+                                                        const cur = selectedTask.assignee || [];
+                                                        const next = cur.includes(u.id) ? cur.filter(x => x !== u.id) : [...cur, u.id];
+                                                        updateTask(selectedTask.id, { assignee: next });
+                                                    }} className={`px-4 py-2 rounded text-[10px] font-bold border transition-all ${active ? 'bg-[#0052CC] border-transparent text-white' : 'border-[#DFE1E6] text-[#5E6C84] hover:bg-[#EBECF0]'}`}>{u.name}</button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">NOTLAR</label>
+                                        <textarea className={`w-full rounded border p-4 text-xs min-h-[120px] outline-none leading-relaxed ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700 text-zinc-300'}`} defaultValue={selectedTask.description} onBlur={(e) => updateTask(selectedTask.id, { description: e.target.value })} placeholder="Ekstra notlar..." />
+                                    </div>
+
+                                    <button onClick={() => setSelectedTask(null)} className="w-full bg-[#0052CC] hover:bg-[#0747A6] text-white p-4 rounded font-bold text-xs shadow-lg transition-all">KAYDET VE KAPAT</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
-        // Mevcut taskın etiketlerine ekle (yoksa)
-        if (!currentTaskTags.includes(tagValue)) {
-            currentTaskTags.push(tagValue);
-            renderActiveTags();
-        }
-        tagInput.value = "";
-    }
-
-    // Taskı kaydetme
-    function saveTask() {
-        let title = document.getElementById('task-title').value;
-        if (!title) return alert("Başlık giriniz!");
-
-        let newTask = {
-            id: Date.now(),
-            title: title,
-            tags: [...currentTaskTags]
-        };
-
-        tasks.push(newTask);
-        currentTaskTags = []; // Reset
-        document.getElementById('task-title').value = "";
-        renderActiveTags();
-        renderTasks(tasks);
-    }
-
-    // Taskları listeleme
-    function renderTasks(data) {
-        let list = document.getElementById('task-list');
-        list.innerHTML = "";
-        data.forEach(t => {
-            list.innerHTML += `
-                <li style="margin-bottom: 10px;">
-                    <strong>${t.title}</strong> 
-                    ${t.tags.map(tag => `<span style="background:#007bff; color:white; padding:2px 6px; border-radius:4px; font-size:12px; margin-left:5px;">${tag}</span>`).join('')}
-                </li>`;
-        });
-    }
-
-    // Filtreleme fonksiyonu
-    function filterTasks() {
-        let selectedTag = document.getElementById('tag-filter').value;
-        if (selectedTag === "all") {
-            renderTasks(tasks);
-        } else {
-            let filtered = tasks.filter(t => t.tags.includes(selectedTag));
-            renderTasks(filtered);
-        }
-    }
-
-    function updateFilterDropdown() {
-        let dropdown = document.getElementById('tag-filter');
-        dropdown.innerHTML = '<option value="all">Tüm Tasklar</option>';
-        allTags.forEach(tag => {
-            dropdown.innerHTML += `<option value="${tag}">${tag}</option>`;
-        });
-    }
-
-    function renderActiveTags() {
-        let container = document.getElementById('active-tags-container');
-        container.innerHTML = currentTaskTags.map(tag => `<span style="border:1px solid #007bff; padding:3px; margin-right:5px;">${tag}</span>`).join('');
-    }
-</script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
