@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr" class="dark">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG | 2026 Ultimate Dashboard (v2.2)</title>
+    <title>RASG | 2026 Ultimate Dashboard (v2.3)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -11,27 +11,33 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; transition: background 0.5s ease; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; transition: all 0.3s ease; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .column-width { min-width: 320px; width: 320px; }
-        .modal-overlay { background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(12px); z-index: 100; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        .dragging { opacity: 0.5; transform: scale(0.95); }
+        .modal-overlay { background-color: rgba(9, 30, 66, 0.54); backdrop-filter: blur(4px); z-index: 100; }
         
-        /* Crystal Quartz Efektleri */
-        .glass-effect {
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* WPF Örneği Kart Gölgesi (DropShadowEffect) */
+        .wpf-card-shadow {
+            box-shadow: 0 1px 2px rgba(9, 30, 66, 0.15);
         }
-        .quartz-bg {
-            background: radial-gradient(circle at top right, #1e1b4b, #0c0c0e),
-                        radial-gradient(circle at bottom left, #1e1b4b, #0c0c0e);
-        }
+        
+        /* Quartz Renkleri (XAML Referanslı) */
+        .quartz-body { background-color: #F4F5F7; color: #172B4D; }
+        .quartz-column { background-color: #EBECF0; }
+        .quartz-card { background-color: #FFFFFF; border: 1px solid #EBECF0; color: #172B4D; }
+        .quartz-text-primary { color: #172B4D; }
+        .quartz-text-secondary { color: #5E6C84; }
+        .quartz-accent { background-color: #0052CC; } /* Assignee Mavisi */
+        
+        /* Dark Renkleri */
+        .dark-body { background-color: #0c0c0e; color: #d1d1d1; }
+        .dark-column { background-color: #1a1a1c; }
+        .dark-card { background-color: #242427; border: 1px solid #333; color: #eee; }
+
+        .dragging { opacity: 0.5; transform: scale(0.98); }
     </style>
 </head>
 <body>
@@ -45,8 +51,8 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const TEAM = [
-            { id: 'AR', name: 'Ahmet', color: 'bg-orange-500' },
-            { id: 'BD', name: 'Berkan', color: 'bg-blue-500' },
+            { id: 'AR', name: 'Ahmet', color: 'bg-[#0052CC]' }, // XAML'daki mavi
+            { id: 'BD', name: 'Berkan', color: 'bg-orange-500' },
             { id: 'YE', name: 'Yiğit', color: 'bg-purple-500' }
         ];
 
@@ -58,7 +64,7 @@
             const [columns, setColumns] = useState([]);
             const [selectedTask, setSelectedTask] = useState(null);
             const [currentView, setCurrentView] = useState('board');
-            const [theme, setTheme] = useState('dark'); // 'dark' veya 'quartz'
+            const [theme, setTheme] = useState('quartz'); // Varsayılanı Quartz (XAML stili) yaptım
             const [draggedTaskId, setDraggedTaskId] = useState(null);
             const [filterAssignee, setFilterAssignee] = useState('All');
             const [filterTime, setFilterTime] = useState('All');
@@ -92,21 +98,21 @@
                 return filtered;
             };
 
-            // Tema stilleri
             const isQuartz = theme === 'quartz';
-            const bgClass = isQuartz ? "quartz-bg" : "bg-[#0c0c0e]";
-            const cardClass = isQuartz ? "glass-effect shadow-xl" : "bg-[#1a1a1c] border-zinc-800";
-            const headerClass = isQuartz ? "bg-white/5 backdrop-blur-md border-white/10" : "bg-[#1a1a1c] border-zinc-800";
+            const bodyStyle = isQuartz ? "quartz-body" : "dark-body";
+            const colStyle = isQuartz ? "quartz-column" : "dark-column";
+            const cardStyle = isQuartz ? "quartz-card wpf-card-shadow" : "dark-card";
+            const headerStyle = isQuartz ? "bg-white border-b border-[#DCDFE4]" : "bg-[#1a1a1c] border-b border-zinc-800";
 
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-black">
-                        <div className="bg-[#1a1a1c] p-10 rounded-3xl border border-zinc-800 w-full max-w-sm shadow-2xl">
-                            <h2 className="text-2xl font-black text-white mb-8 text-center italic uppercase tracking-tighter">RASG 2026</h2>
+                    <div className="min-h-screen flex items-center justify-center bg-[#091E42]">
+                        <div className="bg-white p-10 rounded-xl w-full max-w-sm shadow-2xl">
+                            <h2 className="text-xl font-bold text-[#172B4D] mb-8 text-center uppercase tracking-tighter">RASG 2026 LOGIN</h2>
                             <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hata!"); }} className="space-y-4">
-                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-purple-500" />
-                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-purple-500" />
-                                <button className="w-full bg-purple-600 p-4 rounded-2xl font-bold text-white hover:bg-purple-700 transition shadow-lg shadow-purple-900/20">GİRİŞ</button>
+                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none focus:border-[#0052CC]" />
+                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none focus:border-[#0052CC]" />
+                                <button className="w-full bg-[#0052CC] p-3 rounded font-bold text-white hover:bg-[#0747A6] transition">GİRİŞ YAP</button>
                             </form>
                         </div>
                     </div>
@@ -116,102 +122,102 @@
             const filteredTasks = getFilteredTasks();
 
             return (
-                <div className={`h-screen flex flex-col transition-colors duration-500 ${bgClass} text-zinc-300`}>
+                <div className={`h-screen flex flex-col ${bodyStyle}`}>
                     {/* Header */}
-                    <header className={`${headerClass} border-b p-4 flex justify-between items-center z-10 shadow-lg`}>
-                        <div className="flex items-center gap-6">
-                            <h1 className="font-black text-white italic tracking-tighter">RASG 2026</h1>
-                            <div className="flex gap-4 text-[10px] font-bold uppercase tracking-[0.2em]">
-                                <button onClick={() => setCurrentView('board')} className={`pb-1 transition-all ${currentView === 'board' ? 'border-b-2 border-purple-500 text-white' : 'text-zinc-500'}`}>BOARD</button>
-                                <button onClick={() => setCurrentView('list')} className={`pb-1 transition-all ${currentView === 'list' ? 'border-b-2 border-purple-500 text-white' : 'text-zinc-500'}`}>LIST</button>
+                    <header className={`${headerStyle} p-4 flex justify-between items-center z-10`}>
+                        <div className="flex items-center gap-8">
+                            <h1 className={`font-bold italic text-lg ${isQuartz ? 'text-[#172B4D]' : 'text-white'}`}>RASG 2026</h1>
+                            <div className="flex gap-6 text-[11px] font-bold uppercase tracking-widest">
+                                <button onClick={() => setCurrentView('board')} className={`pb-1 transition-all ${currentView === 'board' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>BOARD</button>
+                                <button onClick={() => setCurrentView('list')} className={`pb-1 transition-all ${currentView === 'list' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>LIST</button>
                             </div>
                         </div>
 
-                        <div className="flex gap-4 items-center">
+                        <div className="flex gap-3 items-center">
                             {/* Tema Switcher */}
-                            <div className="flex items-center bg-black/30 rounded-full p-1 border border-white/10 mr-2">
-                                <button onClick={() => setTheme('dark')} className={`px-3 py-1 rounded-full text-[9px] font-bold transition-all ${theme === 'dark' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>DARK</button>
-                                <button onClick={() => setTheme('quartz')} className={`px-3 py-1 rounded-full text-[9px] font-bold transition-all ${theme === 'quartz' ? 'bg-purple-600 text-white shadow-lg' : 'text-zinc-500'}`}>QUARTZ</button>
+                            <div className={`flex p-1 rounded-md ${isQuartz ? 'bg-[#EBECF0]' : 'bg-black'}`}>
+                                <button onClick={() => setTheme('quartz')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isQuartz ? 'bg-white shadow-sm text-[#0052CC]' : 'text-zinc-500'}`}>QUARTZ</button>
+                                <button onClick={() => setTheme('dark')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${!isQuartz ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>DARK</button>
                             </div>
 
-                            <select onChange={(e) => setFilterAssignee(e.target.value)} className="bg-zinc-900/50 border border-white/10 text-[10px] text-zinc-400 px-3 py-1.5 rounded-lg outline-none">
+                            <select onChange={(e) => setFilterAssignee(e.target.value)} className={`text-[11px] px-2 py-1.5 rounded border outline-none ${isQuartz ? 'bg-white border-[#DFE1E6] text-[#172B4D]' : 'bg-zinc-800 border-zinc-700'}`}>
                                 <option value="All">Tüm Kişiler</option>
                                 {TEAM.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                             </select>
 
-                            <button onClick={async () => { const t = prompt("Görev?"); if(t) await supabase.from('tasks').insert([{text:t, status: columns[0].slug}]); fetchData(); }} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-lg">+ TASK</button>
-                            
-                            <button onClick={() => setIsLoggedIn(false)} className="text-zinc-600 hover:text-red-500 ml-2 transition-colors"><i className="fas fa-power-off"></i></button>
+                            <button onClick={async () => { const t = prompt("Görev?"); if(t) await supabase.from('tasks').insert([{text:t, status: columns[0].slug}]); fetchData(); }} className="bg-[#0052CC] hover:bg-[#0747A6] text-white px-4 py-2 rounded text-xs font-bold transition">+ TASK</button>
+                            <button onClick={() => setIsLoggedIn(false)} className="text-zinc-400 hover:text-red-500 ml-2"><i className="fas fa-power-off"></i></button>
                         </div>
                     </header>
 
-                    {/* Main Content */}
+                    {/* Main */}
                     <main className="flex-1 overflow-hidden">
                         {currentView === 'board' ? (
-                            <div className="flex h-full p-6 gap-6 overflow-x-auto custom-scrollbar">
+                            <div className="flex h-full p-6 gap-5 overflow-x-auto custom-scrollbar">
                                 {columns.map(col => (
                                     <div 
                                         key={col.id} 
-                                        className="column-width flex flex-col p-2"
+                                        className={`column-width flex flex-col p-3 rounded-xl ${colStyle}`}
                                         onDragOver={(e) => e.preventDefault()}
                                         onDrop={() => { if(draggedTaskId) updateTask(draggedTaskId, { status: col.slug }); setDraggedTaskId(null); }}
                                     >
-                                        <div className="flex items-center justify-between mb-5 px-2">
-                                            <div className="flex items-center gap-2">
-                                                <div style={{backgroundColor: col.dot_color}} className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]"></div>
-                                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{col.title}</span>
-                                                <span className="text-zinc-500 text-[9px] font-bold bg-white/5 px-2 py-0.5 rounded-full">{filteredTasks.filter(t => t.status === col.slug).length}</span>
-                                            </div>
+                                        <div className="mb-4 px-1">
+                                            <span className="text-[13px] font-bold uppercase tracking-tight opacity-80">{col.title}</span>
+                                            <span className="ml-2 text-[11px] font-bold opacity-50">{filteredTasks.filter(t => t.status === col.slug).length}</span>
                                         </div>
 
-                                        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
+                                        <div className="flex-1 space-y-2.5 overflow-y-auto custom-scrollbar pr-1">
                                             {filteredTasks.filter(t => t.status === col.slug).map(task => (
                                                 <div 
                                                     key={task.id} 
                                                     draggable 
                                                     onDragStart={() => setDraggedTaskId(task.id)}
                                                     onClick={() => setSelectedTask(task)} 
-                                                    className={`${cardClass} p-4 rounded-2xl hover:scale-[1.02] cursor-grab active:cursor-grabbing transition-all group`}
+                                                    className={`${cardStyle} p-3.5 rounded-md cursor-grab active:cursor-grabbing transition-all hover:bg-[#FAFBFC]`}
                                                 >
-                                                    <p className="text-[13px] text-zinc-200 mb-4 font-medium leading-relaxed">{task.text}</p>
+                                                    <p className="text-[14px] leading-snug mb-4 font-normal">{task.text}</p>
                                                     <div className="flex justify-between items-center">
-                                                        <div className="flex -space-x-1.5">
-                                                            {(task.assignee || []).map(id => {
-                                                                const member = TEAM.find(m => m.id === id);
-                                                                return <div key={id} title={member?.name} className={`w-6 h-6 rounded-full ${member?.color || 'bg-zinc-700'} border-2 ${isQuartz ? 'border-white/20' : 'border-[#1a1a1c]'} text-[8px] flex items-center justify-center font-bold text-white`}>{id}</div>
-                                                            })}
-                                                        </div>
                                                         <div className="flex items-center gap-2">
-                                                            {task.end_date && <span className="text-[9px] text-zinc-500 font-bold bg-white/5 px-2 py-1 rounded-md"><i className="far fa-calendar-alt mr-1"></i>{new Date(task.end_date).toLocaleDateString('tr-TR', {day:'numeric', month:'short'})}</span>}
+                                                            <div className="w-4 h-4 bg-[#42526E] rounded-sm flex items-center justify-center">
+                                                                <span className="text-white text-[9px]">✓</span>
+                                                            </div>
+                                                            <span className="text-[11px] font-semibold text-[#5E6C84]">ID-{task.id.toString().slice(-3)}</span>
+                                                        </div>
+                                                        <div className="flex -space-x-1">
+                                                            {(task.assignee || []).map(id => {
+                                                                const m = TEAM.find(x => x.id === id);
+                                                                return <div key={id} className={`w-6 h-6 rounded-full border-2 ${isQuartz ? 'border-white' : 'border-[#242427]'} ${m?.color} text-[8px] flex items-center justify-center font-bold text-white`}>{id}</div>
+                                                            })}
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
-                                            <button onClick={() => { const t = prompt("Görev?"); if(t) supabase.from('tasks').insert([{text:t, status: col.slug}]).then(fetchData); }} className="w-full py-3 text-zinc-600 hover:text-zinc-400 text-[9px] font-black border border-dashed border-white/5 rounded-2xl transition-all uppercase tracking-widest">+ NEW TASK</button>
+                                            <button onClick={() => { const t = prompt("Görev?"); if(t) supabase.from('tasks').insert([{text:t, status: col.slug}]).then(fetchData); }} className={`w-full py-2 text-[12px] font-medium rounded-md transition-colors text-left px-2 ${isQuartz ? 'text-[#5E6C84] hover:bg-[#DCDFE4]' : 'text-zinc-500 hover:bg-zinc-800'}`}>+ Kart Ekle</button>
                                         </div>
                                     </div>
                                 ))}
+                                
+                                {/* Yeni Liste Ekle Butonu (XAML stili) */}
+                                <button onClick={() => {}} className={`column-width h-12 rounded-xl flex items-center px-4 font-semibold text-[14px] transition-colors ${isQuartz ? 'bg-[#DCDFE4] text-[#172B4D] hover:bg-[#C1C7D0]' : 'bg-zinc-800 text-zinc-400'}`}>
+                                    + Yeni Liste Ekle
+                                </button>
                             </div>
                         ) : (
                             /* List View */
-                            <div className="h-full overflow-y-auto p-8 custom-scrollbar max-w-5xl mx-auto">
+                            <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto custom-scrollbar">
                                 {columns.map(col => {
                                     const colTasks = filteredTasks.filter(t => t.status === col.slug);
                                     if (colTasks.length === 0) return null;
                                     return (
-                                        <div key={col.id} className="mb-10">
-                                            <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-2">
-                                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">{col.title}</span>
-                                            </div>
-                                            <div className={`${cardClass} rounded-2xl overflow-hidden divide-y divide-white/5`}>
+                                        <div key={col.id} className="mb-8">
+                                            <div className="text-[11px] font-bold text-[#5E6C84] uppercase border-b border-[#DFE1E6] mb-2 pb-1">{col.title}</div>
+                                            <div className="bg-white rounded border border-[#DFE1E6] divide-y divide-[#DFE1E6]">
                                                 {colTasks.map(task => (
-                                                    <div key={task.id} onClick={() => setSelectedTask(task)} className="flex items-center hover:bg-white/5 py-4 px-6 transition-colors cursor-pointer">
-                                                        <div className="flex-1 text-sm font-medium text-zinc-300">{task.text}</div>
-                                                        <div className="flex -space-x-1 w-32 justify-center">
-                                                            {(task.assignee || []).map(id => <div key={id} className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 text-[8px] flex items-center justify-center font-bold">{id}</div>)}
-                                                        </div>
-                                                        <div className="w-32 text-right text-[10px] text-zinc-500 font-bold font-mono">
-                                                            {task.end_date ? new Date(task.end_date).toLocaleDateString('tr-TR') : '-- / --'}
+                                                    <div key={task.id} onClick={() => setSelectedTask(task)} className="p-3 hover:bg-[#FAFBFC] flex items-center cursor-pointer transition-colors">
+                                                        <span className="flex-1 text-[14px] text-[#172B4D]">{task.text}</span>
+                                                        <span className="text-[11px] font-bold text-[#5E6C84] mr-4">{task.end_date || '--'}</span>
+                                                        <div className="flex -space-x-1">
+                                                            {(task.assignee || []).map(id => <div key={id} className="w-6 h-6 rounded-full bg-[#0052CC] text-white text-[8px] flex items-center justify-center font-bold">{id}</div>)}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -223,28 +229,41 @@
                         )}
                     </main>
 
-                    {/* Task Details Modal */}
+                    {/* Modal */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
-                            <div className={`${isQuartz ? 'bg-zinc-900/80 backdrop-blur-2xl' : 'bg-[#141416]'} w-full max-w-xl h-full shadow-2xl border-l border-white/10 p-8 flex flex-col animate-in slide-in-from-right duration-300`}>
-                                <div className="flex justify-between items-center mb-10">
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">TASK SETTINGS</span>
-                                    <div className="flex gap-4">
-                                        <button onClick={async () => { if(confirm("Silinsin mi?")) { await supabase.from('tasks').delete().eq('id', selectedTask.id); setSelectedTask(null); fetchData(); } }} className="text-zinc-600 hover:text-red-500 transition-colors"><i className="fas fa-trash-alt"></i></button>
-                                        <button onClick={() => setSelectedTask(null)} className="text-zinc-500 hover:text-white transition-colors"><i className="fas fa-times text-xl"></i></button>
+                            <div className={`${isQuartz ? 'bg-[#FFFFFF]' : 'bg-[#1c1c1e]'} w-full max-w-xl h-full shadow-2xl p-8 flex flex-col animate-in slide-in-from-right`}>
+                                <div className="flex justify-between items-center mb-8">
+                                    <span className="text-[11px] font-bold text-[#5E6C84]">KART DETAYI</span>
+                                    <div className="flex gap-4 items-center">
+                                        <button onClick={async () => { if(confirm("Silinsin mi?")) { await supabase.from('tasks').delete().eq('id', selectedTask.id); setSelectedTask(null); fetchData(); } }} className="text-[#5E6C84] hover:text-red-600"><i className="fas fa-trash-alt"></i></button>
+                                        <button onClick={() => setSelectedTask(null)} className="text-[#5E6C84] hover:text-black transition-colors"><i className="fas fa-times text-xl"></i></button>
                                     </div>
                                 </div>
 
                                 <textarea 
-                                    className="text-2xl font-bold bg-transparent outline-none text-white mb-8 border-b border-white/5 focus:border-purple-500 pb-4 resize-none w-full" 
+                                    className={`text-xl font-bold bg-transparent outline-none w-full mb-8 border-b p-2 ${isQuartz ? 'text-[#172B4D] border-[#DFE1E6] focus:border-[#0052CC]' : 'text-white border-zinc-700'}`} 
                                     defaultValue={selectedTask.text} 
                                     onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} 
                                 />
 
-                                <div className="space-y-8 custom-scrollbar overflow-y-auto pr-2">
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">BİTİŞ TARİHİ</label>
+                                            <input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className={`w-full p-2 rounded border text-sm outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700'}`} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">DURUM</label>
+                                            <select value={selectedTask.status} onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })} className={`w-full p-2 rounded border text-sm outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700'}`}>
+                                                {columns.map(c => <option key={c.id} value={c.slug}>{c.title}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label className="text-[10px] text-zinc-500 font-bold block mb-4 uppercase tracking-widest">Assignees</label>
-                                        <div className="flex flex-wrap gap-2">
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">ATANANLAR</label>
+                                        <div className="flex gap-2">
                                             {TEAM.map(u => {
                                                 const active = (selectedTask.assignee || []).includes(u.id);
                                                 return (
@@ -252,31 +271,18 @@
                                                         const cur = selectedTask.assignee || [];
                                                         const next = cur.includes(u.id) ? cur.filter(x => x !== u.id) : [...cur, u.id];
                                                         updateTask(selectedTask.id, { assignee: next });
-                                                    }} className={`px-4 py-2 rounded-xl text-[10px] font-bold border transition-all ${active ? `${u.color} border-transparent text-white shadow-lg` : 'border-white/5 text-zinc-500 hover:border-white/20'}`}>{u.id} {u.name}</button>
+                                                    }} className={`px-4 py-2 rounded text-[10px] font-bold border transition-all ${active ? 'bg-[#0052CC] border-transparent text-white' : 'border-[#DFE1E6] text-[#5E6C84] hover:bg-[#EBECF0]'}`}>{u.name}</button>
                                                 )
                                             })}
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="text-[10px] text-zinc-500 font-bold block mb-3 uppercase tracking-widest">Due Date</label>
-                                            <input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className="bg-white/5 border border-white/10 text-white p-3 rounded-xl w-full text-xs outline-none focus:border-purple-500" />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] text-zinc-500 font-bold block mb-3 uppercase tracking-widest">Status</label>
-                                            <select value={selectedTask.status} onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })} className="bg-white/5 border border-white/10 text-zinc-300 p-3 rounded-xl w-full text-xs outline-none focus:border-purple-500">
-                                                {columns.map(c => <option key={c.id} value={c.slug} className="bg-zinc-900">{c.title}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-
                                     <div>
-                                        <label className="text-[10px] text-zinc-500 font-bold block mb-3 uppercase tracking-widest">Notes</label>
-                                        <textarea className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-xs min-h-[150px] outline-none focus:border-purple-500 transition-all leading-relaxed text-zinc-400" defaultValue={selectedTask.description} onBlur={(e) => updateTask(selectedTask.id, { description: e.target.value })} placeholder="Ekstra detaylar..." />
+                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2">AÇIKLAMA</label>
+                                        <textarea className={`w-full rounded border p-4 text-sm min-h-[150px] outline-none ${isQuartz ? 'bg-[#FAFBFC] border-[#DFE1E6]' : 'bg-zinc-800 border-zinc-700 text-zinc-300'}`} defaultValue={selectedTask.description} onBlur={(e) => updateTask(selectedTask.id, { description: e.target.value })} placeholder="Notlarınızı buraya ekleyin..." />
                                     </div>
 
-                                    <button onClick={() => setSelectedTask(null)} className="w-full bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-2xl font-black text-xs shadow-xl transition-all">CLOSE SETTINGS</button>
+                                    <button onClick={() => setSelectedTask(null)} className="w-full bg-[#0052CC] hover:bg-[#0747A6] text-white p-3 rounded font-bold text-sm shadow-lg transition-all">KAYDET VE KAPAT</button>
                                 </div>
                             </div>
                         </div>
