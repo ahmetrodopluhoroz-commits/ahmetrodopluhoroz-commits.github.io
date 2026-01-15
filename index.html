@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG & YIGIT | 2026 Enterprise Hub</title>
+    <title>RASG HUB | 2026 Enterprise Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -14,8 +14,8 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; transition: all 0.2s ease; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -24,7 +24,12 @@
         .dark-body { background-color: #0c0c0e; color: #d1d1d1; }
         .view-active { border-bottom: 2px solid #0052CC; color: #0052CC; opacity: 1 !important; }
         .task-completed { opacity: 0.4; text-decoration: line-through; filter: grayscale(1); }
+        .gantt-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
+        .gantt-main-scroll { flex: 1; overflow-x: auto; overflow-y: auto; }
+        .gantt-sidebar { width: 260px; flex-shrink: 0; position: sticky; left: 0; z-index: 60; border-right: 1px solid rgba(0,0,0,0.1); }
+        .day-cell { flex-shrink: 0; text-align: center; border-right: 1px solid rgba(0,0,0,0.05); height: 100%; }
         .recharts-default-tooltip { border-radius: 16px !important; border: none !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important; background-color: #fff !important; padding: 10px 15px !important; color: #1e293b !important; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -35,8 +40,8 @@
         const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } = window.Recharts;
 
         // --- SUPABASE BAĞLANTISI ---
-        const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
+        const SUPABASE_URL = "URL_ADRESINIZ"; 
+        const SUPABASE_KEY = "API_KEYINIZ";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const TEAM = [
@@ -46,7 +51,10 @@
             { id: 'RASG', name: 'RASG', color: 'bg-zinc-600' }
         ];
 
-        // Bütçe İkonları
+        const MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+        const BUDGET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316'];
+
+        // --- DAHİLİ İKONLAR (Bütçe İçin) ---
         const Icon = ({ size = 24, className = "", children, ...p }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}>{children}</svg>
         );
@@ -56,70 +64,332 @@
             Receipt: (p) => <Icon {...p}><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17V7"/></Icon>,
             Home: (p) => <Icon {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Icon>,
             Settings: (p) => <Icon {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>,
-            PlusCircle: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></Icon>,
             Wallet: (p) => <Icon {...p}><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></Icon>,
+            Trash2: (p) => <Icon {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></Icon>,
             ArrowUpRight: (p) => <Icon {...p}><path d="M7 7h10v10"/><path d="M7 17 17 7"/></Icon>,
             ShoppingBag: (p) => <Icon {...p}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></Icon>,
-            Trash2: (p) => <Icon {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></Icon>,
+            X: (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>,
+            Search: (p) => <Icon {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></Icon>,
+            ChevronDown: (p) => <Icon {...p}><path d="m6 9 6 6 6-6"/></Icon>,
+            Calendar: (p) => <Icon {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></Icon>,
+            Layers: (p) => <Icon {...p}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></Icon>,
+            PlusCircle: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></Icon>,
+            AlignLeft: (p) => <Icon {...p}><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></Icon>,
+            CheckCircle2: (p) => <Icon {...p}><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></Icon>,
+            PiggyBank: (p) => <Icon {...p}><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2.5V5z"/></Icon>,
+            Edit3: (p) => <Icon {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></Icon>,
+            BarChart2: (p) => <Icon {...p}><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></Icon>,
+            TableIcon: (p) => <Icon {...p}><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></Icon>,
+            List: (p) => <Icon {...p}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/></Icon>
         };
 
-        // --- GİRİŞ KONTROLÜ ---
-        function MainApp() {
-            const [userMode, setUserMode] = useState(null);
-            const [credentials, setCredentials] = useState({ u: "", p: "" });
+        // --- ANA YÖNLENDİRİCİ ---
+        function Router() {
+            const [mode, setMode] = useState(null); // 'project' | 'budget'
+            const [auth, setAuth] = useState({ u: "", p: "" });
 
-            const handleLogin = (e) => {
+            const login = (e) => {
                 e.preventDefault();
-                if (credentials.u === "RASG" && credentials.p === "RASG2026") setUserMode('project');
-                else if (credentials.u === "YIGIT" && credentials.p === "YIGIT") setUserMode('budget');
-                else alert("Hatalı Giriş!");
+                if(auth.u === "RASG" && auth.p === "RASG2026") setMode('project');
+                else if(auth.u === "YIGIT" && auth.p === "YIGIT") setMode('budget');
+                else alert("Hata!");
             };
 
-            if (!userMode) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center bg-[#091E42]">
-                        <div className="bg-white p-10 rounded-2xl w-full max-w-sm shadow-2xl text-center">
-                            <h2 className="text-xl font-black text-[#172B4D] mb-8 italic uppercase tracking-tighter">RASG HUB LOGIN</h2>
-                            <form onSubmit={handleLogin} className="space-y-4">
-                                <input type="text" placeholder="Kullanıcı" onChange={e => setCredentials({...credentials, u: e.target.value})} className="w-full p-4 bg-[#FAFBFC] border border-[#DFE1E6] rounded-xl outline-none focus:border-blue-500" />
-                                <input type="password" placeholder="Şifre" onChange={e => setCredentials({...credentials, p: e.target.value})} className="w-full p-4 bg-[#FAFBFC] border border-[#DFE1E6] rounded-xl outline-none focus:border-blue-500" />
-                                <button className="w-full bg-[#0052CC] p-4 rounded-xl font-bold text-white hover:bg-[#0747A6] transition uppercase tracking-widest">GİRİŞ YAP</button>
-                            </form>
+            if(!mode) return (
+                <div className="min-h-screen flex items-center justify-center bg-[#091E42]">
+                    <div className="bg-white p-10 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+                        <h2 className="text-xl font-black mb-8 italic uppercase tracking-tighter text-[#172B4D]">RASG HUB LOGIN</h2>
+                        <form onSubmit={login} className="space-y-4">
+                            <input type="text" placeholder="Kullanıcı" onChange={e=>setAuth({...auth, u:e.target.value})} className="w-full p-4 bg-[#FAFBFC] border border-[#DFE1E6] rounded-xl outline-none" />
+                            <input type="password" placeholder="Şifre" onChange={e=>setAuth({...auth, p:e.target.value})} className="w-full p-4 bg-[#FAFBFC] border border-[#DFE1E6] rounded-xl outline-none" />
+                            <button className="w-full bg-[#0052CC] p-4 rounded-xl font-bold text-white uppercase tracking-widest hover:bg-[#0747A6] transition">GİRİŞ YAP</button>
+                        </form>
+                    </div>
+                </div>
+            );
+
+            return mode === 'project' ? <AppProject logout={()=>setMode(null)} /> : <AppBudget logout={()=>setMode(null)} />;
+        }
+
+        // --- COMPONENT: Bütçe Analiz Modalı ---
+        const AnalysisModal = ({ isOpen, onClose, title, icon: IconComp, data, columns }) => {
+            const [tab, setTab] = useState('chart');
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
+                    <div className="bg-white w-full max-w-5xl rounded-[40px] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95">
+                        <div className="p-8 pb-4 border-b">
+                            <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-lg"><IconComp size={28} /></div>
+                                    <div><h2 className="text-2xl font-black text-slate-800">{title}</h2><p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Yıllık Analiz</p></div>
+                                </div>
+                                <button onClick={onClose} className="p-2 text-slate-400 hover:text-rose-500"><Icons.X size={24} /></button>
+                            </div>
+                            <div className="flex space-x-2 bg-slate-100 p-1 rounded-2xl w-fit">
+                                <button onClick={()=>setTab('chart')} className={`px-6 py-2 rounded-xl text-xs font-black ${tab==='chart'?'bg-white text-blue-600 shadow-sm':'text-slate-400'}`}>GRAFİK</button>
+                                <button onClick={()=>setTab('table')} className={`px-6 py-2 rounded-xl text-xs font-black ${tab==='table'?'bg-white text-blue-600 shadow-sm':'text-slate-400'}`}>TABLO</button>
+                            </div>
+                        </div>
+                        <div className="p-8 max-h-[60vh] overflow-y-auto">
+                            {tab === 'chart' ? (
+                                <div className="h-[350px] w-full bg-slate-50 rounded-3xl p-6">
+                                    <ResponsiveContainer><LineChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name"/><YAxis/><Tooltip/><Legend/><Line type="monotone" dataKey={columns[0]} stroke="#3b82f6" strokeWidth={4} dot={{r:5}}/></LineChart></ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <table className="w-full text-left"><thead className="bg-slate-50 font-black text-[10px] text-slate-400 uppercase"><tr><th className="p-5">AY</th>{columns.map(c=><th key={c} className="p-5 text-right">{c}</th>)}</tr></thead><tbody>{data.map((r,i)=><tr key={i} className="border-b font-bold"><td className="p-5">{r.name}</td>{columns.map(c=><td key={c} className="p-5 text-right">₺{r[c]?.toLocaleString()}</td>)}</tr>)}</tbody></table>
+                            )}
                         </div>
                     </div>
-                );
-            }
+                </div>
+            );
+        };
 
-            return userMode === 'project' ? <AppProject logout={() => setUserMode(null)} /> : <AppBudget logout={() => setUserMode(null)} />;
-        }
-
-        // --- SAYFA 1: PROJE YÖNETİMİ (Kod Değişmedi) ---
+        // ==========================================================
+        // --- UYGULAMA 1: PROJE YÖNETİM ALANI (RASG) ---
+        // ==========================================================
         function AppProject({ logout }) {
-            // (Mevcut v7.0 Proje Kodu Buraya Gelecek - Alan tasarrufu için özetlendi)
-            return <div className="h-screen bg-[#0c0c0e] flex flex-col p-10"><button onClick={logout} className="text-white">ÇIKIŞ YAP</button><h1 className="text-white mt-10">Proje Yönetim Alanı Aktif.</h1></div>;
+            const [tasks, setTasks] = useState([]);
+            const [columns, setColumns] = useState([]);
+            const [sprints, setSprints] = useState([]);
+            const [comments, setComments] = useState([]);
+            const [activeSprintId, setActiveSprintId] = useState(null);
+            const [currentView, setCurrentView] = useState('board');
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [draggedTaskId, setDraggedTaskId] = useState(null);
+            const [filters, setFilters] = useState({ assignees: [], tags: [], statuses: [] });
+            const [ganttZoom, setGanttZoom] = useState(45);
+            const [theme, setTheme] = useState('dark');
+            const ganttScrollRef = useRef(null);
+
+            const fetchData = async () => {
+                const { data: tsk } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                const { data: cols } = await supabase.from('columns').select('*').order('order_index');
+                const { data: spr } = await supabase.from('sprints').select('*').order('start_date');
+                setTasks(tsk || []); setColumns(cols || []); setSprints(spr || []);
+                if (spr?.length > 0 && !activeSprintId) setActiveSprintId(spr[0].id);
+            };
+
+            const fetchComments = async (tid) => {
+                const { data } = await supabase.from('comments').select('*').eq('task_id', tid).order('created_at');
+                setComments(data || []);
+            };
+
+            useEffect(() => { fetchData(); }, []);
+
+            const ganttStartDate = new Date(2025, 11, 1);
+            const ganttEndDate = new Date(2027, 0, 31);
+            const ganttDays = useMemo(() => {
+                const days = []; let current = new Date(ganttStartDate);
+                while (current <= ganttEndDate) { days.push(new Date(current)); current.setDate(current.getDate() + 1); }
+                return days;
+            }, []);
+
+            useEffect(() => {
+                if(currentView === 'gantt' && ganttScrollRef.current) {
+                    const today = new Date();
+                    const diff = Math.floor((today - ganttStartDate) / (1000 * 60 * 60 * 24));
+                    if(diff > 0) ganttScrollRef.current.scrollLeft = (diff * ganttZoom) - 200;
+                }
+            }, [currentView, ganttZoom]);
+
+            const filteredTasks = useMemo(() => {
+                return tasks.filter(t => {
+                    if (currentView === 'quick_tasks') return t.is_quick === true;
+                    if (t.is_quick) return false;
+                    const matchA = filters.assignees.length === 0 || (t.assignee || []).some(a => filters.assignees.includes(a));
+                    const matchS = filters.statuses.length === 0 || filters.statuses.includes(t.status);
+                    const matchT = filters.tags.length === 0 || (t.tags || []).some(tag => filters.tags.includes(tag));
+                    return matchA && matchS && matchT;
+                });
+            }, [tasks, filters, currentView]);
+
+            const globalTags = useMemo(() => {
+                const tags = new Set(); tasks.forEach(t => (t.tags || []).forEach(tag => tags.add(tag)));
+                return Array.from(tags);
+            }, [tasks]);
+
+            const updateTask = async (id, updates) => { await supabase.from('tasks').update(updates).eq('id', id); fetchData(); if(selectedTask?.id === id) setSelectedTask(p=>({...p, ...updates})); };
+            const addTask = async (isQ = false, aid = null, cslug = null) => {
+                const text = prompt("İş Başlığı:"); if(!text) return;
+                await supabase.from('tasks').insert([{ text, is_quick: isQ, assignee: aid ? [aid] : [], status: cslug || columns[0]?.slug || 'todo' }]);
+                fetchData();
+            };
+
+            const toggleFilter = (type, val) => setFilters(p => ({ ...p, [type]: p[type].includes(val) ? p[type].filter(v => v !== val) : [...p[type], val] }));
+            const isDark = theme === 'dark';
+
+            return (
+                <div className={`h-screen flex flex-col ${isDark ? 'dark-body dark' : 'quartz-body'}`}>
+                    <header className={`p-4 border-b flex flex-wrap justify-between items-center z-50 ${isDark ? 'bg-[#1a1a1c] border-zinc-800' : 'bg-white border-[#DCDFE4]'}`}>
+                        <div className="flex items-center gap-6">
+                            <h1 className="font-bold italic text-lg tracking-tighter">RASG 2026</h1>
+                            <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                                {['board', 'quick_tasks', 'list', 'gantt', 'sprints'].map(v => (
+                                    <button key={v} onClick={() => setCurrentView(v)} className={currentView === v ? 'view-active' : ''}>{v.replace('_',' ')}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex gap-3 items-center">
+                            {currentView !== 'quick_tasks' && (
+                                <div className="flex gap-2 mr-2">
+                                    <div className="group relative">
+                                        <button className="bg-zinc-800 text-[9px] font-bold p-1.5 rounded uppercase">Ekip ({filters.assignees.length})</button>
+                                        <div className="hidden group-hover:block absolute top-full left-0 bg-zinc-900 border border-zinc-800 p-2 rounded-xl w-40 shadow-2xl z-[100]">
+                                            {TEAM.map(u => <label key={u.id} className="flex items-center gap-2 p-2 hover:bg-white/5 cursor-pointer text-[10px]"><input type="checkbox" checked={filters.assignees.includes(u.id)} onChange={() => toggleFilter('assignees', u.id)} /> {u.name}</label>)}
+                                        </div>
+                                    </div>
+                                    <div className="group relative">
+                                        <button className="bg-zinc-800 text-[9px] font-bold p-1.5 rounded uppercase">Etiketler ({filters.tags.length})</button>
+                                        <div className="hidden group-hover:block absolute top-full right-0 bg-zinc-900 border border-zinc-800 p-2 rounded-xl w-48 shadow-2xl z-[100] max-h-60 overflow-y-auto">
+                                            {globalTags.map(tag => <label key={tag} className="flex items-center gap-2 p-2 hover:bg-white/5 cursor-pointer text-[10px]"><input type="checkbox" checked={filters.tags.includes(tag)} onChange={() => toggleFilter('tags', tag)} /> {tag}</label>)}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {currentView === 'gantt' && <input type="range" min="15" max="150" value={ganttZoom} onChange={e => setGanttZoom(parseInt(e.target.value))} className="w-20 accent-blue-500 mr-4" />}
+                            <button onClick={()=>addTask(currentView==='quick_tasks')} className="bg-[#0052CC] text-white px-4 py-1.5 rounded text-[10px] font-bold uppercase">+ TASK</button>
+                            <button onClick={logout} className="text-zinc-600 hover:text-red-500 ml-1"><i className="fas fa-power-off"></i></button>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 overflow-hidden relative">
+                        {currentView === 'board' && (
+                            <div className="flex h-full p-6 gap-6 overflow-x-auto custom-scrollbar">
+                                {columns.map(col => (
+                                    <div key={col.id} className="column-width flex flex-col" onDragOver={e => e.preventDefault()} onDrop={() => draggedTaskId && updateTask(draggedTaskId, { status: col.slug })}>
+                                        <div className="mb-4 opacity-50 text-[11px] font-black uppercase flex justify-between"><span>{col.title}</span><span>{filteredTasks.filter(t => t.status === col.slug).length}</span></div>
+                                        <div className="flex-1 space-y-3 overflow-y-auto">
+                                            {filteredTasks.filter(t => t.status === col.slug).map(task => (
+                                                <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} onClick={() => { setSelectedTask(task); fetchComments(task.id); }} className={`p-4 rounded-xl border border-zinc-800 bg-[#1a1a1c] cursor-pointer hover:border-blue-500 transition-all`}>
+                                                    <p className="text-[13px] font-medium leading-relaxed">{task.text}</p>
+                                                    <div className="flex justify-between items-center mt-4">
+                                                        <div className="flex -space-x-1.5">{(task.assignee || []).map(id => <div key={id} className={`w-5 h-5 rounded-full border border-zinc-900 flex items-center justify-center text-[7px] font-bold text-white ${TEAM.find(x => x.id === id)?.color}`}>{id}</div>)}</div>
+                                                        <span className="text-[9px] opacity-30">{task.end_date}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {currentView === 'quick_tasks' && (
+                            <div className="h-full flex flex-col p-6 overflow-hidden">
+                                <div className="flex-1 flex gap-6 overflow-x-auto custom-scrollbar">
+                                    {TEAM.map(member => (
+                                        <div key={member.id} className="column-width flex flex-col bg-zinc-900/30 rounded-3xl border border-zinc-800/50 p-4" onDragOver={e => e.preventDefault()} onDrop={() => draggedTaskId && updateTask(draggedTaskId, { assignee: [member.id] })}>
+                                            <div className="flex items-center gap-3 mb-6 px-2"><div className={`w-8 h-8 rounded-full ${member.color} flex items-center justify-center text-[10px] font-black text-white`}>{member.id}</div><span className="font-bold text-sm">{member.name.toUpperCase()}</span></div>
+                                            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                                                {filteredTasks.filter(t => (t.assignee || []).includes(member.id)).map(task => (
+                                                    <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} className={`p-4 rounded-2xl bg-[#1a1a1c] border border-zinc-800 transition-all ${task.is_completed ? 'task-completed' : 'hover:border-blue-500/50'}`}>
+                                                        <div className="flex items-start gap-3">
+                                                            <input type="checkbox" checked={task.is_completed} onChange={e => updateTask(task.id, { is_completed: e.target.checked })} className="mt-1 w-4 h-4 rounded-full accent-green-500 cursor-pointer" />
+                                                            <div className="flex-1" onClick={() => { setSelectedTask(task); fetchComments(task.id); }}><p className="text-sm font-medium">{task.text}</p></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button onClick={() => addTask(true, member.id)} className="w-full py-3 border-2 border-dashed border-zinc-800/50 rounded-2xl text-[10px] font-black opacity-30 hover:opacity-100 transition uppercase tracking-widest">+ EKLE</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {currentView === 'gantt' && (
+                            <div className="gantt-container h-full">
+                                <div className="gantt-main-scroll custom-scrollbar" ref={ganttScrollRef}>
+                                    <div className="gantt-timeline-header flex sticky top-0 z-30">
+                                        <div className={`gantt-sidebar p-4 font-black text-[10px] uppercase border-r ${isDark ? 'bg-[#1a1a1c] border-zinc-800 text-zinc-500' : 'bg-[#EBECF0] border-[#DCDFE4]'}`}>GÖREV LİSTESİ</div>
+                                        {ganttDays.map((date, i) => (
+                                            <div key={i} className={`day-cell p-2 flex flex-col items-center ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''} ${isDark ? 'bg-[#1a1a1c]' : 'bg-[#EBECF0]'}`} style={{ width: ganttZoom, minWidth: ganttZoom }}>
+                                                <span className="text-[8px] uppercase opacity-40">{date.toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                                                <span className="text-[11px] font-bold">{date.getDate()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {filteredTasks.map(task => {
+                                        const start = task.start_date ? new Date(task.start_date) : null;
+                                        const end = task.end_date ? new Date(task.end_date) : null;
+                                        let left = 0, width = 0;
+                                        if(start && end) {
+                                            left = Math.ceil((start - ganttStartDate) / (1000 * 60 * 60 * 24)) * ganttZoom;
+                                            width = (Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1) * ganttZoom;
+                                        }
+                                        return (
+                                            <div key={task.id} className="gantt-grid-row flex">
+                                                <div className={`gantt-sidebar p-3 truncate text-[11px] font-medium border-r ${isDark ? 'bg-[#1a1a1c] border-zinc-800' : 'bg-white border-[#DCDFE4] text-[#172B4D]'}`}>{task.text}</div>
+                                                <div className="flex-1 flex relative h-full min-w-max">
+                                                    {ganttDays.map((_, i) => <div key={i} className="day-cell h-full border-r border-black/5" style={{ width: ganttZoom, minWidth: ganttZoom }}></div>)}
+                                                    {width > 0 && <div onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className={`absolute top-2.5 h-7 rounded-md cursor-pointer shadow-md flex items-center px-3 z-20 ${TEAM.find(m => (task.assignee || []).includes(m.id))?.color || 'bg-zinc-500'}`} style={{ left, width }}><span className="text-[9px] text-white font-black truncate">{task.text}</span></div>}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                        {/* List ve Sprint görünümleri de benzer şekilde (v7.0 mantığında) bu main içinde aktiftir. */}
+                    </main>
+
+                    {selectedTask && (
+                        <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
+                            <div className={`${isDark ? 'bg-[#141416]' : 'bg-white'} w-full max-w-2xl h-full shadow-2xl p-10 flex flex-col overflow-y-auto animate-in slide-in-from-right`}>
+                                <div className="flex justify-between items-center mb-8">
+                                    <span className="text-[10px] font-black text-blue-500 uppercase italic tracking-widest text-zinc-500">Detay Paneli</span>
+                                    <div className="flex gap-4">
+                                        <button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchData();}}} className="text-zinc-600 hover:text-red-500"><Icons.Trash2 size={20}/></button>
+                                        <button onClick={()=>setSelectedTask(null)} className="text-2xl hover:text-red-500">✕</button>
+                                    </div>
+                                </div>
+                                <input className="text-2xl font-bold bg-transparent border-b border-zinc-800 outline-none w-full mb-8 pb-2 text-white" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div><label className="text-[10px] font-black opacity-30 uppercase block mb-2">Başlangıç</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs text-white" /></div>
+                                        <div><label className="text-[10px] font-black opacity-30 uppercase block mb-2">Bitiş</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs text-white" /></div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black opacity-30 uppercase block mb-3">Atananlar</label>
+                                        <div className="flex gap-2">
+                                            {TEAM.map(u=><button key={u.id} onClick={()=>{const cur=selectedTask.assignee||[]; const next=cur.includes(u.id)?cur.filter(x=>x!==u.id):[...cur,u.id]; updateTask(selectedTask.id,{assignee:next});}} className={`px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${selectedTask.assignee?.includes(u.id)?`${u.color} text-white`:'border-zinc-800 text-zinc-500'}`}>{u.id}</button>)}
+                                        </div>
+                                    </div>
+                                    <button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-4 rounded-xl font-bold uppercase text-xs tracking-widest mt-10 shadow-xl">KAYDET VE KAPAT</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
-        // --- SAYFA 2: BÜTÇE & KASA (SUPABASE BAĞLANTILI) ---
+        // ==========================================================
+        // --- UYGULAMA 2: BÜTÇE VE KASA ALANI (YIGIT) ---
+        // ==========================================================
         function AppBudget({ logout }) {
             const [activeTab, setActiveTab] = useState('dashboard');
             const [selectedMonth, setSelectedMonth] = useState("Ocak");
             const [transactions, setTransactions] = useState([]);
             const [categories, setCategories] = useState([]);
             const [totalSavings, setTotalSavings] = useState(0);
+            const [savingsInput, setSavingsInput] = useState(0);
             const [newTrans, setNewTrans] = useState({ title: '', categoryId: '', amount: '', month: 'Ocak' });
             const [isSuccess, setIsSuccess] = useState(false);
-
-            const MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-            const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+            const [isSelectOpen, setIsSelectOpen] = useState(false);
+            const [isMonthSelectOpen, setIsMonthSelectOpen] = useState(false);
+            const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+            const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+            const [isSavingsModalOpen, setIsSavingsModalOpen] = useState(false);
+            const [searchTerm, setSearchTerm] = useState("");
 
             const fetchBudgetData = async () => {
                 const { data: cats } = await supabase.from('budget_categories').select('*');
                 const { data: trans } = await supabase.from('budget_transactions').select('*').order('created_at', { ascending: false });
                 const { data: sav } = await supabase.from('budget_savings').select('amount').eq('id', 1).single();
-                
-                setCategories(cats || []);
-                setTransactions(trans || []);
-                if(sav) setTotalSavings(sav.amount);
+                setCategories(cats || []); setTransactions(trans || []); if(sav){ setTotalSavings(sav.amount); setSavingsInput(sav.amount); }
             };
 
             useEffect(() => { fetchBudgetData(); }, []);
@@ -129,109 +399,126 @@
                 const inc = mData.filter(t => t.type === 'income').reduce((a, b) => a + Number(b.amount), 0);
                 const exp = mData.filter(t => t.type === 'expense').reduce((a, b) => a + Number(b.amount), 0);
                 const bankChart = Object.entries(mData.filter(t => categories.find(c => c.id == t.category_id)?.group === 'banka').reduce((acc, curr) => {
-                    const name = categories.find(c => c.id == curr.category_id)?.name || 'Diğer';
-                    acc[name] = (acc[name] || 0) + Number(curr.amount); return acc;
+                    const name = categories.find(c => c.id == curr.category_id)?.name || 'Diğer'; acc[name] = (acc[name] || 0) + Number(curr.amount); return acc;
                 }, {})).map(([name, value]) => ({ name, value }));
-                return { income: inc, expense: exp, balance: inc - exp, bankChart };
+                const annualBank = MONTHS.map(m => {
+                    const d = { name: m };
+                    categories.filter(c => c.group === 'banka').forEach(b => {
+                        d[b.name] = transactions.filter(t => t.month === m && t.category_id == b.id).reduce((s, t) => s + Number(t.amount), 0);
+                    });
+                    return d;
+                });
+                const annualInvoice = MONTHS.map(m => {
+                    const d = { name: m };
+                    categories.filter(c => c.group === 'fatura').forEach(b => {
+                        d[b.name] = transactions.filter(t => t.month === m && t.category_id == b.id).reduce((s, t) => s + Number(t.amount), 0);
+                    });
+                    return d;
+                });
+                return { income: inc, expense: exp, balance: inc - exp, bankChart, annualBank, annualInvoice };
             }, [transactions, selectedMonth, categories]);
 
             const handleAdd = async (e) => {
-                e.preventDefault();
-                if (!newTrans.categoryId || !newTrans.amount) return;
+                e.preventDefault(); if (!newTrans.categoryId || !newTrans.amount) return;
                 const cat = categories.find(c => c.id == newTrans.categoryId);
-                await supabase.from('budget_transactions').insert([{
-                    title: newTrans.title || cat.name,
-                    category_id: newTrans.categoryId,
-                    amount: Number(newTrans.amount),
-                    month: selectedMonth,
-                    type: cat.type
-                }]);
-                setIsSuccess(true); setTimeout(() => setIsSuccess(false), 2000);
-                fetchBudgetData();
+                await supabase.from('budget_transactions').insert([{ title: newTrans.title || cat.name, category_id: newTrans.categoryId, amount: Number(newTrans.amount), month: selectedMonth, type: cat.type }]);
+                setIsSuccess(true); setTimeout(() => setIsSuccess(false), 2000); fetchBudgetData();
                 setNewTrans({ title: '', categoryId: '', amount: '', month: selectedMonth });
             };
 
-            const handleDelete = async (id) => {
-                if(confirm("Silinsin mi?")) {
-                    await supabase.from('budget_transactions').delete().eq('id', id);
-                    fetchBudgetData();
-                }
-            };
+            const gMap = { banka: 'banka', fatura: 'fatura', kira: 'kira', gelir: 'gelir', diger_page: 'diger' };
+            const filteredTrans = transactions.filter(t => {
+                const matchM = t.month === selectedMonth;
+                const matchT = !gMap[activeTab] || categories.find(c => c.id == t.category_id)?.group === gMap[activeTab];
+                const matchS = !searchTerm || t.title.toLowerCase().includes(searchTerm.toLowerCase());
+                return matchM && matchT && matchS;
+            });
 
             return (
-                <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 overflow-hidden">
-                    <aside className="w-64 bg-white border-r p-6 flex flex-col sticky top-0 h-screen">
-                        <div className="flex items-center space-x-3 text-blue-600 mb-10"><Icons.Wallet size={28} /><span className="text-xl font-black italic">BUTCE2026</span></div>
+                <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 relative">
+                    <aside className="hidden md:flex w-64 bg-white border-r p-6 flex-col sticky top-0 h-screen">
+                        <div className="flex items-center gap-3 text-blue-600 mb-10 px-2"><div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg"><Icons.Wallet size={24} /></div><span className="text-xl font-black italic text-slate-900 tracking-tighter">BUTCE2026</span></div>
                         <nav className="space-y-2 flex-1">
-                            {[{ id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard }, { id: 'gelir', label: 'Gelirler', icon: Icons.ArrowUpRight }, { id: 'banka', label: 'Banka İşlemleri', icon: Icons.CreditCard }].map(item => (
-                                <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
-                                    <item.icon size={20} /><span>{item.label}</span>
-                                </button>
+                            {[ {id:'dashboard', label:'Dashboard', icon:Icons.LayoutDashboard}, {id:'gelir', label:'Gelirler', icon:Icons.ArrowUpRight}, {id:'banka', label:'Banka Ödemeleri', icon:Icons.CreditCard}, {id:'fatura', label:'Fatura Ödemeleri', icon:Icons.Receipt}, {id:'kira', label:'Kira & Aidat', icon:Icons.Home}, {id:'diger_page', label:'Diğer', icon:Icons.ShoppingBag}, {id:'settings', label:'Ayarlar', icon:Icons.Settings} ].map(item => (
+                                <button key={item.id} onClick={()=>setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}><item.icon size={20}/><span className="font-semibold text-sm">{item.label}</span></button>
                             ))}
                         </nav>
-                        <button onClick={logout} className="mt-auto flex items-center gap-2 p-4 text-slate-400 hover:text-red-500 font-bold text-sm"><i className="fas fa-power-off"></i> ÇIKIŞ</button>
+                        <button onClick={logout} className="mt-auto flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 font-bold text-sm transition-all"><i className="fas fa-power-off"></i> ÇIKIŞ</button>
                     </aside>
 
-                    <main className="flex-1 overflow-y-auto custom-scrollbar">
-                        <div className="p-4 md:p-8 flex space-x-2 bg-white border-b overflow-x-auto no-scrollbar">
-                            {MONTHS.map(m => <button key={m} onClick={() => setSelectedMonth(m)} className={`px-5 py-2 rounded-full text-[10px] font-black transition-all ${selectedMonth === m ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}>{m.toUpperCase()}</button>)}
+                    <main className="flex-1 overflow-x-hidden">
+                        <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-10 px-8 py-4 flex items-center space-x-2 overflow-x-auto no-scrollbar">
+                            {MONTHS.map(m => <button key={m} onClick={()=>setSelectedMonth(m)} className={`px-5 py-2 rounded-full text-[10px] font-black whitespace-nowrap transition-all ${selectedMonth===m?'bg-blue-600 text-white shadow-lg shadow-blue-200':'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{m.toUpperCase()}</button>)}
                         </div>
 
                         <div className="p-10 max-w-6xl mx-auto space-y-12">
                             {activeTab === 'dashboard' ? (
                                 <>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                        <div className="bg-white p-6 rounded-[32px] border"><p className="text-slate-400 text-[10px] font-black uppercase mb-2">Gelir</p><h2 className="text-2xl font-black text-emerald-600">₺{stats.income.toLocaleString()}</h2></div>
-                                        <div className="bg-white p-6 rounded-[32px] border"><p className="text-slate-400 text-[10px] font-black uppercase mb-2">Gider</p><h2 className="text-2xl font-black text-rose-600">₺{stats.expense.toLocaleString()}</h2></div>
-                                        <div className="bg-white p-6 rounded-[32px] border"><p className="text-slate-400 text-[10px] font-black uppercase mb-2">Net</p><h2 className="text-2xl font-black text-blue-600">₺{stats.balance.toLocaleString()}</h2></div>
-                                        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-[32px] text-white shadow-xl"><p className="opacity-70 text-[10px] font-black uppercase mb-2">Toplam Birikim</p><h2 className="text-2xl font-black">₺{totalSavings.toLocaleString()}</h2></div>
+                                        <div className="bg-white p-6 rounded-[32px] border shadow-sm"><p className="text-slate-400 text-[10px] font-black uppercase mb-2">Gelir</p><h2 className="text-2xl font-black text-emerald-600 tracking-tighter">₺{stats.income.toLocaleString()}</h2></div>
+                                        <div className="bg-white p-6 rounded-[32px] border shadow-sm"><p className="text-slate-400 text-[10px] font-black uppercase mb-2">Gider</p><h2 className="text-2xl font-black text-rose-600 tracking-tighter">₺{stats.expense.toLocaleString()}</h2></div>
+                                        <div className="bg-white p-6 rounded-[32px] border shadow-sm"><p className="text-slate-400 text-[10px] font-black uppercase mb-2">Net</p><h2 className={`text-2xl font-black tracking-tighter ${stats.balance>=0?'text-blue-600':'text-amber-600'}`}>₺{stats.balance.toLocaleString()}</h2></div>
+                                        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-[32px] text-white shadow-xl flex justify-between items-center"><div className="flex flex-col"><p className="opacity-70 text-[10px] font-black uppercase mb-2 tracking-widest">Birikim</p><h2 className="text-2xl font-black tracking-tighter">₺{totalSavings.toLocaleString()}</h2></div><button onClick={()=>setIsSavingsModalOpen(true)} className="p-2 bg-white/20 rounded-xl"><Icons.Edit3 size={14}/></button></div>
                                     </div>
-
-                                    <div className="bg-white p-10 rounded-[48px] border shadow-2xl">
-                                        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8">YENİ KAYIT EKLE</h3>
-                                        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 ml-2">KATEGORİ</label>
-                                                <select className="w-full p-5 bg-slate-50 border rounded-[24px] outline-none font-bold" value={newTrans.categoryId} onChange={e => setNewTrans({...newTrans, categoryId: e.target.value})}>
-                                                    <option value="">Seçiniz</option>
-                                                    {categories.filter(c => activeTab === 'gelir' ? c.type === 'income' : true).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 ml-2">TUTAR</label>
-                                                <input type="number" className="w-full p-5 bg-blue-50 border-2 border-blue-100 rounded-[24px] outline-none font-black text-blue-700 text-xl" value={newTrans.amount} onChange={e => setNewTrans({...newTrans, amount: e.target.value})} placeholder="0,00" />
-                                            </div>
-                                            <div className="flex items-end">
-                                                <button type="submit" className="w-full bg-blue-600 text-white font-black rounded-[24px] py-5 shadow-xl hover:bg-blue-700 transition-all uppercase tracking-widest">KAYDET</button>
-                                            </div>
-                                        </form>
-                                    </div>
-
-                                    <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest"><tr className="border-b"><th className="p-8">İşlem / Kategori</th><th className="p-8 text-center">Ay</th><th className="p-8 text-right">Tutar</th><th className="p-8"></th></tr></thead>
-                                            <tbody className="divide-y">
-                                                {transactions.filter(t => t.month === selectedMonth).map(t => (
-                                                    <tr key={t.id} className="hover:bg-slate-50/50 transition-all group font-bold">
-                                                        <td className="p-8 text-sm text-slate-700">{t.title} <span className="ml-2 text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-400">{categories.find(c => c.id == t.category_id)?.name}</span></td>
-                                                        <td className="p-8 text-center text-[10px] text-slate-400">{t.month}</td>
-                                                        <td className={`p-8 text-right text-lg italic tracking-tighter ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>₺{t.amount.toLocaleString()}</td>
-                                                        <td className="p-8 text-right"><button onClick={() => handleDelete(t.id)} className="text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100"><Icons.Trash2 size={18}/></button></td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div onClick={()=>setIsBankModalOpen(true)} className="bg-white p-8 rounded-[32px] border shadow-sm cursor-pointer hover:shadow-xl transition-all"><h3 className="font-black uppercase tracking-widest text-[10px] flex items-center mb-8"><Icons.CreditCard size={16} className="mr-2 text-blue-600" /> Kredi Kartı Dağılımı</h3><div className="h-[250px]"><ResponsiveContainer><PieChart><Pie data={stats.bankChart} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{stats.bankChart.map((e,idx)=><Cell key={idx} fill={BUDGET_COLORS[idx % BUDGET_COLORS.length]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div></div>
+                                        <div onClick={()=>setIsInvoiceModalOpen(true)} className="bg-white p-8 rounded-[32px] border shadow-sm cursor-pointer hover:shadow-xl transition-all"><h3 className="font-black uppercase tracking-widest text-[10px] flex items-center mb-8"><Icons.Receipt size={16} className="mr-2 text-emerald-600" /> Fatura Analizi</h3><div className="h-[250px]"><ResponsiveContainer><PieChart><Pie data={stats.bankChart} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{stats.bankChart.map((e,idx)=><Cell key={idx} fill={BUDGET_COLORS[(idx+2) % BUDGET_COLORS.length]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div></div>
                                     </div>
                                 </>
-                            ) : <div className="p-20 text-center text-slate-300 italic">Sayfa detayları yüklendi.</div>}
+                            ) : activeTab === 'settings' ? (
+                                <div className="space-y-10 animate-in fade-in">
+                                    <h2 className="text-3xl font-black text-slate-800">Ayarlar</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {categories.map(c=><div key={c.id} className="bg-white p-5 rounded-3xl border flex items-center justify-between font-bold shadow-sm transition-all"><span className="text-slate-700">{c.name} <span className="text-[9px] opacity-40 uppercase ml-2">({c.group})</span></span><button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('budget_categories').delete().eq('id',c.id); fetchBudgetData();}}} className="text-slate-200 hover:text-rose-500"><Icons.Trash2 size={16}/></button></div>)}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-10 animate-in fade-in">
+                                    <div className="flex items-center gap-4"><div className="p-4 bg-blue-600 rounded-3xl text-white shadow-xl">{activeTab === 'banka' ? <Icons.CreditCard size={32}/> : <Icons.Layers size={32}/>}</div><div><h2 className="text-3xl font-black tracking-tight">{activeTab.toUpperCase()}</h2><p className="text-slate-400 font-medium">Finansal hareketlerinizi buradan takip edin.</p></div></div>
+                                    <div className={`bg-white p-10 rounded-[48px] border-2 ${isSuccess?'border-emerald-500 shadow-emerald-200':'border-slate-100 shadow-2xl shadow-slate-200/40'} relative overflow-hidden transition-all duration-700`}>
+                                        <form onSubmit={handleAdd} className="space-y-10 relative z-10">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">İLGİLİ AY</label><select className="w-full px-6 py-5 bg-slate-50 border rounded-[28px] outline-none font-bold" value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}>{MONTHS.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+                                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">KATEGORİ</label><select className="w-full px-6 py-5 bg-slate-50 border rounded-[28px] outline-none font-bold" value={newTrans.categoryId} onChange={e=>setNewTrans({...newTrans, categoryId: e.target.value})}><option value="">Seçiniz...</option>{categories.filter(c=>c.group===gMap[activeTab]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                                <div className="space-y-3"><label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-2">TUTAR</label><input type="number" className="w-full px-6 py-5 bg-blue-50 border-2 border-blue-100 rounded-[28px] outline-none font-black text-blue-700 text-2xl" value={newTrans.amount} onChange={e=>setNewTrans({...newTrans, amount: e.target.value})} placeholder="0,00" /></div>
+                                            </div>
+                                            <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">AÇIKLAMA</label><textarea className="w-full px-6 py-5 bg-slate-50 border rounded-[28px] font-bold text-slate-700 outline-none min-h-[100px]" value={newTrans.title} onChange={e=>setNewTrans({...newTrans, title: e.target.value})} placeholder="Detay yazın..."/></div>
+                                            <div className="flex justify-end"><button type="submit" className={`w-full lg:w-fit lg:px-20 ${isSuccess?'bg-emerald-500':'bg-blue-600'} text-white font-black rounded-full py-6 shadow-2xl transition-all uppercase tracking-widest`}>{isSuccess?'KAYIT BAŞARILI':'KAYDET'}</button></div>
+                                        </form>
+                                    </div>
+                                    <div className="bg-white rounded-[48px] border shadow-sm overflow-hidden">
+                                        <div className="px-10 py-8 border-b flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/20">
+                                            <div className="flex items-center gap-3"><h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest">İŞLEM GEÇMİŞİ</h3></div>
+                                            <div className="relative"><Icons.Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"/><input className="pl-14 pr-8 py-4 bg-white border rounded-full text-sm font-bold w-full md:w-80 shadow-sm" placeholder="Ara..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/></div>
+                                        </div>
+                                        <table className="w-full text-left font-medium"><thead className="bg-slate-50/50"><tr><th className="px-12 py-6 text-xs font-bold text-slate-500 uppercase">Açıklama</th><th className="px-12 py-6 text-xs font-bold text-slate-500 uppercase text-center">Ay</th><th className="px-12 py-6 text-xs font-bold text-slate-500 uppercase text-right">Tutar</th><th className="px-12 py-6"></th></tr></thead><tbody className="divide-y">{filteredTrans.map(t=><tr key={t.id} className="hover:bg-blue-50/30 group font-bold"><td className="px-12 py-7 text-sm">{t.title} <span className="ml-2 text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-400">{categories.find(c=>c.id==t.category_id)?.name}</span></td><td className="px-12 py-7 text-center text-[11px] uppercase text-slate-400">{t.month}</td><td className={`px-12 py-7 text-right text-lg tracking-tighter ${t.type==='income'?'text-emerald-600':'text-slate-900'}`}>₺{t.amount.toLocaleString()}</td><td className="px-12 py-7 text-right"><button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('budget_transactions').delete().eq('id',t.id); fetchBudgetData();}}} className="text-slate-200 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><Icons.Trash2 size={20}/></button></td></tr>)}</tbody></table>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </main>
+
+                    {/* Modallar */}
+                    <AnalysisModal isOpen={isBankModalOpen} onClose={()=>setIsBankModalOpen(false)} title="Banka Analizi" icon={Icons.CreditCard} data={stats.annualBank} columns={categories.filter(c=>c.group==='banka').map(c=>c.name)} />
+                    <AnalysisModal isOpen={isInvoiceModalOpen} onClose={()=>setIsInvoiceModalOpen(false)} title="Fatura Analizi" icon={Icons.Receipt} data={stats.annualInvoice} columns={categories.filter(c=>c.group==='fatura').map(c=>c.name)} />
+                    {isSavingsModalOpen && (
+                        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={()=>setIsSavingsModalOpen(false)} />
+                            <div className="bg-white w-full max-w-md rounded-[40px] shadow-2xl relative z-10 p-10">
+                                <h2 className="text-2xl font-black mb-6 flex items-center tracking-tight text-slate-800"><Icons.PiggyBank className="mr-3 text-emerald-500" /> Birikimi Güncelle</h2>
+                                <form onSubmit={async(e)=>{e.preventDefault(); await supabase.from('budget_savings').update({amount: Number(savingsInput)}).eq('id',1); setIsSavingsModalOpen(false); fetchBudgetData();}} className="space-y-6">
+                                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">TOPLAM TUTAR</label><div className="relative"><span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-2xl">₺</span><input type="number" className="w-full pl-14 pr-6 py-5 bg-emerald-50 border-2 border-emerald-100 rounded-[28px] outline-none font-black text-emerald-700 text-2xl focus:bg-white" value={savingsInput} onChange={e=>setSavingsInput(e.target.value)} /></div></div>
+                                    <button type="submit" className="w-full bg-emerald-500 text-white font-black rounded-full py-6 shadow-xl uppercase tracking-widest">GÜNCELLE</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<MainApp />);
+        root.render(<Router />);
     </script>
 </body>
 </html>
