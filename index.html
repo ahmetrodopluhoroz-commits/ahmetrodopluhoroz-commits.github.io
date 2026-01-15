@@ -3,50 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG | 2026 Ultimate Dashboard (v3.1)</title>
+    <title>RASG | 2026 Sprint & Project Master (v4.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; transition: all 0.3s ease; }
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .column-width { min-width: 320px; width: 320px; }
-        .modal-overlay { background-color: rgba(9, 30, 66, 0.54); backdrop-filter: blur(4px); z-index: 100; }
         .quartz-body { background-color: #F4F5F7; color: #172B4D; }
-        .quartz-column { background-color: #EBECF0; }
-        .quartz-card { background-color: #FFFFFF; border: 1px solid #EBECF0; color: #172B4D; }
         .dark-body { background-color: #0c0c0e; color: #d1d1d1; }
-        .dark-column { background-color: #1a1a1c; }
-        .dark-card { background-color: #242427; border: 1px solid #333; color: #eee; }
-        .tag-badge { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-        
-        /* Genişletilmiş Gantt Stilleri */
-        .gantt-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-        .gantt-header-wrapper { display: flex; border-bottom: 1px solid rgba(0,0,0,0.1); }
-        .gantt-sidebar { width: 260px; flex-shrink: 0; position: sticky; left: 0; z-index: 20; border-right: 1px solid rgba(0,0,0,0.1); }
-        .gantt-main-scroll { flex: 1; overflow-x: auto; overflow-y: auto; display: flex; flex-direction: column; }
-        .gantt-grid-row { display: flex; min-height: 48px; border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .day-cell { min-width: 45px; width: 45px; flex-shrink: 0; text-align: center; border-right: 1px solid rgba(0,0,0,0.05); }
-        .gantt-timeline-header { display: flex; position: sticky; top: 0; z-index: 10; }
-        .weekend { background-color: rgba(0,0,0,0.03); }
-        .dark .weekend { background-color: rgba(255,255,255,0.03); }
-        .dark .gantt-sidebar { background-color: #1a1a1c; border-right: 1px solid #333; }
-        .quartz .gantt-sidebar { background-color: #EBECF0; }
+        .dark-card { background-color: #1a1a1c; border: 1px solid #333; }
+        .quartz-card { background-color: #ffffff; border: 1px solid #ddd; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
     </style>
 </head>
 <body class="dark">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo } = React;
 
-        const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
+        const SUPABASE_URL = "URL_ADRESINIZ"; 
+        const SUPABASE_KEY = "API_KEYINIZ";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const TEAM = [
@@ -57,263 +40,197 @@
 
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [username, setUsername] = useState("");
-            const [password, setPassword] = useState("");
             const [tasks, setTasks] = useState([]);
             const [columns, setColumns] = useState([]);
-            const [availableTags, setAvailableTags] = useState([]);
-            const [selectedTask, setSelectedTask] = useState(null);
+            const [sprints, setSprints] = useState([]);
+            const [activeSprintId, setActiveSprintId] = useState(null);
             const [currentView, setCurrentView] = useState('board');
-            const [theme, setTheme] = useState('quartz');
-            const [draggedTaskId, setDraggedTaskId] = useState(null);
-            const [filterAssignee, setFilterAssignee] = useState('All');
-            const [filterTag, setFilterTag] = useState('All');
+            const [theme, setTheme] = useState('dark');
+            const [selectedTask, setSelectedTask] = useState(null);
 
-            const ganttScrollRef = useRef(null);
+            // Filtreler
+            const [filterAssignee, setFilterAssignee] = useState('All');
 
             const fetchData = async () => {
+                const { data: tsk } = await supabase.from('tasks').select('*');
                 const { data: cols } = await supabase.from('columns').select('*').order('order_index');
-                const { data: tsk } = await supabase.from('tasks').select('*').order('created_at');
-                setColumns(cols || []);
+                const { data: spr } = await supabase.from('sprints').select('*').order('start_date');
                 setTasks(tsk || []);
-                const tags = new Set();
-                tsk?.forEach(t => t.tags?.forEach(tag => tags.add(tag)));
-                setAvailableTags(Array.from(tags));
+                setColumns(cols || []);
+                setSprints(spr || []);
+                if (spr?.length > 0 && !activeSprintId) setActiveSprintId(spr[0].id);
             };
 
             useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
 
-            const updateTask = async (taskId, updates) => {
-                const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
-                if (!error) {
-                    fetchData();
-                    if (selectedTask?.id === taskId) setSelectedTask(prev => ({ ...prev, ...updates }));
+            // SPRINT OLUŞTURMA MANTIĞI
+            const generateSprints = async () => {
+                const start = prompt("Başlangıç Tarihi (YYYY-MM-DD):", "2026-01-01");
+                const end = prompt("Bitiş Tarihi (YYYY-MM-DD):", "2026-12-31");
+                const duration = parseInt(prompt("Sprint Süresi (Gün):", "14"));
+                
+                if (!start || !end || isNaN(duration)) return;
+
+                let currentStart = new Date(start);
+                const finalEnd = new Date(end);
+                const newSprints = [];
+                let count = 1;
+
+                while (currentStart < finalEnd) {
+                    let currentEnd = new Date(currentStart);
+                    currentEnd.setDate(currentStart.getDate() + duration - 1);
+                    
+                    newSprints.push({
+                        name: `Sprint ${count}`,
+                        start_date: currentStart.toISOString().split('T')[0],
+                        end_date: currentEnd.toISOString().split('T')[0]
+                    });
+                    
+                    currentStart.setDate(currentStart.getDate() + duration);
+                    count++;
                 }
+
+                const { error } = await supabase.from('sprints').insert(newSprints);
+                if (!error) fetchData();
+            };
+
+            const updateTask = async (taskId, updates) => {
+                await supabase.from('tasks').update(updates).eq('id', taskId);
+                fetchData();
             };
 
             const filteredTasks = useMemo(() => {
                 let filtered = [...tasks];
                 if (filterAssignee !== 'All') filtered = filtered.filter(t => (t.assignee || []).includes(filterAssignee));
-                if (filterTag !== 'All') filtered = filtered.filter(t => (t.tags || []).includes(filterTag));
                 return filtered;
-            }, [tasks, filterAssignee, filterTag]);
-
-            // --- GENİŞLETİLMİŞ GANTT TARİH ARALIĞI ---
-            // 1 Aralık 2025'ten başlar, 31 Ocak 2026'ya kadar 62 günlük bir pencere sunar (İsteğe göre artırılabilir)
-            const ganttStartDate = new Date(2025, 11, 1); // 1 Aralık 2025
-            const ganttDays = useMemo(() => {
-                const days = [];
-                for(let i=0; i<400; i++) { // 90 günlük geniş bir görünüm
-                    const d = new Date(ganttStartDate);
-                    d.setDate(ganttStartDate.getDate() + i);
-                    days.push(d);
-                }
-                return days;
-            }, []);
-
-            // Bugünün kolonuna otomatik kaydırma
-            useEffect(() => {
-                if(currentView === 'gantt' && ganttScrollRef.current) {
-                    const today = new Date();
-                    const diff = Math.floor((today - ganttStartDate) / (1000 * 60 * 60 * 24));
-                    if(diff > 0) ganttScrollRef.current.scrollLeft = (diff * 45) - 200;
-                }
-            }, [currentView]);
-
-            const isQuartz = theme === 'quartz';
-            const bodyStyle = isQuartz ? "quartz-body" : "dark-body";
-            const colStyle = isQuartz ? "quartz-column" : "dark-column";
-            const cardStyle = isQuartz ? "quartz-card wpf-card-shadow" : "dark-card";
-            const headerStyle = isQuartz ? "bg-white border-b border-[#DCDFE4]" : "bg-[#1a1a1c] border-b border-zinc-800";
+            }, [tasks, filterAssignee]);
 
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-[#091E42]">
-                        <div className="bg-white p-10 rounded-xl w-full max-w-sm shadow-2xl text-center">
-                            <h2 className="text-xl font-bold text-[#172B4D] mb-8 uppercase italic">RASG 2026</h2>
-                            <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hata!"); }} className="space-y-4">
-                                <input type="text" placeholder="Kullanıcı" onChange={e => setUsername(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none" />
-                                <input type="password" placeholder="Şifre" onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-[#FAFBFC] border border-[#DFE1E6] rounded text-[#172B4D] outline-none" />
-                                <button className="w-full bg-[#0052CC] p-3 rounded font-bold text-white hover:bg-[#0747A6] transition">GİRİŞ</button>
-                            </form>
-                        </div>
+                    <div className="min-h-screen flex items-center justify-center bg-[#0c0c0e]">
+                        <button onClick={() => setIsLoggedIn(true)} className="bg-purple-600 px-8 py-4 rounded-xl text-white font-bold text-xl shadow-2xl">RASG DASHBOARD GİRİŞ</button>
                     </div>
                 );
             }
 
+            const isDark = theme === 'dark';
+
             return (
-                <div className={`h-screen flex flex-col ${bodyStyle} ${!isQuartz ? 'dark' : ''}`}>
-                    <header className={`${headerStyle} p-4 flex justify-between items-center z-10`}>
+                <div className={`h-screen flex flex-col ${isDark ? 'dark-body' : 'quartz-body'}`}>
+                    {/* HEADER */}
+                    <header className={`p-4 border-b flex justify-between items-center ${isDark ? 'bg-[#1a1a1c] border-zinc-800' : 'bg-white border-zinc-200'}`}>
                         <div className="flex items-center gap-8">
-                            <h1 className="font-bold italic text-lg">RASG 2026</h1>
+                            <h1 className="font-bold italic text-lg tracking-tighter">RASG MASTER</h1>
                             <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest">
-                                <button onClick={() => setCurrentView('board')} className={`pb-1 transition-all ${currentView === 'board' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>BOARD</button>
-                                <button onClick={() => setCurrentView('list')} className={`pb-1 transition-all ${currentView === 'list' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>LIST</button>
-                                <button onClick={() => setCurrentView('gantt')} className={`pb-1 transition-all ${currentView === 'gantt' ? 'border-b-2 border-[#0052CC] text-[#0052CC]' : 'text-zinc-500'}`}>GANTT</button>
+                                <button onClick={() => setCurrentView('board')} className={`pb-1 ${currentView === 'board' ? 'border-b-2 border-blue-500' : 'opacity-40'}`}>BOARD</button>
+                                <button onClick={() => setCurrentView('list')} className={`pb-1 ${currentView === 'list' ? 'border-b-2 border-blue-500' : 'opacity-40'}`}>LIST</button>
+                                <button onClick={() => setCurrentView('sprints')} className={`pb-1 ${currentView === 'sprints' ? 'border-b-2 border-blue-500 text-blue-500' : 'opacity-40'}`}>SPRINTS</button>
                             </div>
                         </div>
-                        <div className="flex gap-2 items-center">
-                            <div className={`flex p-1 rounded-md mr-4 ${isQuartz ? 'bg-[#EBECF0]' : 'bg-black'}`}>
-                                <button onClick={() => setTheme('quartz')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isQuartz ? 'bg-white shadow-sm text-[#0052CC]' : 'text-zinc-500'}`}>QUARTZ</button>
-                                <button onClick={() => setTheme('dark')} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${!isQuartz ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>DARK</button>
-                            </div>
-                            <button onClick={async () => { const t = prompt("Görev?"); if(t) await supabase.from('tasks').insert([{text:t, status: columns[0].slug, tags: []}]); fetchData(); }} className="bg-[#0052CC] text-white px-4 py-2 rounded text-xs font-bold transition shadow-md">+ TASK</button>
+                        <div className="flex gap-4">
+                            <select onChange={e => setFilterAssignee(e.target.value)} className="bg-transparent border border-zinc-700 text-[10px] p-1 rounded">
+                                <option value="All">Tüm Ekip</option>
+                                {TEAM.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                            </select>
+                            <button onClick={() => setTheme(isDark ? 'quartz' : 'dark')} className="text-xs opacity-50"><i className={`fas fa-${isDark ? 'sun' : 'moon'}`}></i></button>
+                            <button onClick={generateSprints} className="bg-zinc-800 text-white px-3 py-1 rounded text-[10px] font-bold">+ AUTO SPRINTS</button>
                         </div>
                     </header>
 
                     <main className="flex-1 overflow-hidden">
-                        {currentView === 'gantt' ? (
-                            <div className="gantt-container">
-                                <div className="gantt-main-scroll custom-scrollbar" ref={ganttScrollRef}>
-                                    {/* Gantt Header */}
-                                    <div className="gantt-timeline-header flex">
-                                        <div className={`gantt-sidebar p-4 font-bold text-[10px] uppercase opacity-50 flex items-center ${isQuartz ? 'bg-[#EBECF0]' : 'bg-[#1a1a1c]'}`}>Görev Listesi</div>
-                                        {ganttDays.map((date, i) => {
-                                            const isToday = new Date().toDateString() === date.toDateString();
-                                            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                                            return (
-                                                <div key={i} className={`day-cell p-2 flex flex-col items-center ${isWeekend ? 'weekend' : ''} ${isToday ? 'bg-blue-500/10' : ''}`}>
-                                                    <span className={`text-[8px] uppercase ${isToday ? 'text-blue-500 font-bold' : 'opacity-40'}`}>{date.toLocaleDateString('tr-TR', { month: 'short' })}</span>
-                                                    <span className={`text-[11px] ${isToday ? 'text-blue-500 font-black' : 'font-bold'}`}>{date.getDate()}</span>
+                        {currentView === 'sprints' ? (
+                            /* SPRINT MANAGEMENT VIEW */
+                            <div className="h-full flex flex-col p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div className="flex gap-4">
+                                        <select 
+                                            className="bg-[#1a1a1c] border border-zinc-700 p-2 rounded text-sm text-white"
+                                            value={activeSprintId || ""}
+                                            onChange={e => setActiveSprintId(e.target.value)}
+                                        >
+                                            {sprints.map(s => <option key={s.id} value={s.id}>{s.name} ({s.start_date} / {s.end_date})</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="text-xs opacity-50 font-bold uppercase tracking-widest">Sprint Planlama Ekranı</div>
+                                </div>
+
+                                <div className="flex-1 flex gap-6 overflow-hidden">
+                                    {/* BACKLOG (SOL) */}
+                                    <div className={`flex-1 flex flex-col rounded-2xl p-4 ${isDark ? 'bg-[#121214]' : 'bg-zinc-200'}`}>
+                                        <h3 className="text-xs font-black uppercase mb-4 opacity-50">Backlog (Havuz)</h3>
+                                        <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
+                                            {filteredTasks.filter(t => !t.sprint_id).map(task => (
+                                                <div key={task.id} className={`p-4 rounded-xl flex justify-between items-center ${isDark ? 'bg-[#1c1c1e]' : 'bg-white shadow-sm'}`}>
+                                                    <span className="text-sm font-medium">{task.text}</span>
+                                                    <button onClick={() => updateTask(task.id, { sprint_id: activeSprintId })} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold">SPRINT'E EKLE <i className="fas fa-arrow-right ml-1"></i></button>
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
                                     </div>
 
-                                    {/* Gantt Rows */}
-                                    {filteredTasks.map(task => {
-                                        const startDate = task.start_date ? new Date(task.start_date) : null;
-                                        const endDate = task.end_date ? new Date(task.end_date) : null;
-                                        let barLeft = 0; let barWidth = 0;
-
-                                        if(startDate && endDate) {
-                                            const diffStart = Math.ceil((startDate - ganttStartDate) / (1000 * 60 * 60 * 24));
-                                            const diffDuration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                                            barLeft = diffStart * 45;
-                                            barWidth = diffDuration * 45;
-                                        }
-
-                                        return (
-                                            <div key={task.id} className="gantt-grid-row flex items-center group relative hover:bg-black/5 transition-colors">
-                                                <div className={`gantt-sidebar p-3 flex items-center gap-3 overflow-hidden ${isQuartz ? 'bg-[#EBECF0]' : 'bg-[#1a1a1c]'}`}>
-                                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: columns.find(c => c.slug === task.status)?.dot_color || '#ccc' }}></div>
-                                                    <span className="text-[11px] font-medium truncate opacity-80">{task.text}</span>
+                                    {/* ACTIVE SPRINT (SAĞ) */}
+                                    <div className={`flex-1 flex flex-col rounded-2xl p-4 ${isDark ? 'bg-[#1a1a1c] border border-blue-900/30' : 'bg-blue-50'}`}>
+                                        <h3 className="text-xs font-black uppercase mb-4 text-blue-500">Aktif Sprint Görevleri</h3>
+                                        <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
+                                            {filteredTasks.filter(t => t.sprint_id == activeSprintId).map(task => (
+                                                <div key={task.id} className={`p-4 rounded-xl flex justify-between items-center border border-blue-500/20 ${isDark ? 'bg-[#242427]' : 'bg-white shadow-md'}`}>
+                                                    <span className="text-sm font-medium text-blue-400">{task.text}</span>
+                                                    <button onClick={() => updateTask(task.id, { sprint_id: null })} className="text-zinc-500 hover:text-red-500 text-[10px] font-bold"><i className="fas fa-undo mr-1"></i> BACKLOG'A ÇEK</button>
                                                 </div>
-                                                <div className="flex-1 flex relative h-full min-w-max">
-                                                    {ganttDays.map((date, i) => <div key={i} className={`day-cell h-full border-r border-black/5 ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''}`}></div>)}
-                                                    {barWidth > 0 && (
-                                                        <div 
-                                                            onClick={() => setSelectedTask(task)}
-                                                            className={`absolute top-2.5 h-7 rounded-md cursor-pointer shadow-sm hover:brightness-110 transition-all flex items-center px-3 z-30 ${TEAM.find(m => (task.assignee || []).includes(m.id))?.color || 'bg-zinc-400'}`}
-                                                            style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
-                                                        >
-                                                            <span className="text-[9px] text-white font-black truncate">{task.text}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
-                            /* Board ve List View İçeriği (V3.0 ile aynı yapı) */
-                            <div className="h-full overflow-hidden">
-                                {currentView === 'board' ? (
-                                     <div className="flex h-full p-6 gap-5 overflow-x-auto custom-scrollbar">
-                                        {columns.map(col => (
-                                            <div key={col.id} className={`column-width flex flex-col p-3 rounded-xl ${colStyle}`} onDragOver={(e) => e.preventDefault()} onDrop={() => { if(draggedTaskId) updateTask(draggedTaskId, { status: col.slug }); setDraggedTaskId(null); }}>
-                                                <div className="mb-4 flex justify-between items-center opacity-70">
-                                                    <span className="text-[12px] font-bold uppercase">{col.title}</span>
-                                                    <span className="text-[10px] font-black bg-black/5 px-2 py-0.5 rounded-full">{filteredTasks.filter(t => t.status === col.slug).length}</span>
-                                                </div>
-                                                <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
-                                                    {filteredTasks.filter(t => t.status === col.slug).map(task => (
-                                                        <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} onClick={() => setSelectedTask(task)} className={`${cardStyle} p-4 rounded-md cursor-grab hover:shadow-md transition-all`}>
-                                                            <div className="flex flex-wrap gap-1 mb-2">{(task.tags || []).map(tag => <span key={tag} className="tag-badge bg-[#0052CC]/10 text-[#0052CC]">{tag}</span>)}</div>
-                                                            <p className="text-[14px] leading-snug mb-4 font-medium">{task.text}</p>
-                                                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-3.5 h-3.5 bg-[#42526E] rounded-sm flex items-center justify-center text-[8px] text-white">✓</div>
-                                                                    <span className="text-[10px] font-bold text-[#5E6C84]">ID-{task.id.toString().slice(-3)}</span>
-                                                                </div>
-                                                                <div className="flex -space-x-1.5">
-                                                                    {(task.assignee || []).map(id => <div key={id} className={`w-5 h-5 rounded-full border ${isQuartz ? 'border-white' : 'border-[#242427]'} ${TEAM.find(x => x.id === id)?.color} text-[7px] flex items-center justify-center font-bold text-white`}>{id}</div>)}
-                                                                </div>
-                                                            </div>
+                            /* BOARD & LIST VIEW (EXISTING) */
+                            <div className="h-full p-6 flex gap-6 overflow-x-auto custom-scrollbar">
+                                {columns.map(col => (
+                                    <div key={col.id} className="column-width flex flex-col">
+                                        <div className="mb-4 text-[11px] font-black uppercase opacity-40">{col.title}</div>
+                                        <div className="flex-1 space-y-3">
+                                            {filteredTasks.filter(t => t.status === col.slug).map(task => (
+                                                <div key={task.id} onClick={() => setSelectedTask(task)} className={`p-4 rounded-xl cursor-pointer hover:border-blue-500 transition-all ${isDark ? 'dark-card' : 'quartz-card'}`}>
+                                                    <p className="text-sm mb-4 font-medium">{task.text}</p>
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex -space-x-1.5">
+                                                            {(task.assignee || []).map(id => <div key={id} className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-[8px] font-bold border border-zinc-900">{id}</div>)}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto custom-scrollbar">
-                                        {columns.map(col => {
-                                            const colTasks = filteredTasks.filter(t => t.status === col.slug);
-                                            if (colTasks.length === 0) return null;
-                                            return (
-                                                <div key={col.id} className="mb-8">
-                                                    <div className="text-[11px] font-black text-[#5E6C84] uppercase border-b pb-1 mb-2">{col.title}</div>
-                                                    <div className={`${cardStyle} rounded divide-y divide-black/5`}>
-                                                        {colTasks.map(task => (
-                                                            <div key={task.id} onClick={() => setSelectedTask(task)} className="p-3 hover:bg-black/5 flex items-center cursor-pointer transition-colors">
-                                                                <div className="flex-1 flex items-center gap-4">
-                                                                    <span className="text-[14px] font-medium">{task.text}</span>
-                                                                    <div className="flex gap-1">{(task.tags || []).map(t => <span key={t} className="tag-badge bg-black/5 text-zinc-500">{t}</span>)}</div>
-                                                                </div>
-                                                                <div className="flex -space-x-1">{(task.assignee || []).map(id => <div key={id} className="w-6 h-6 rounded-full bg-[#0052CC] text-white text-[8px] flex items-center justify-center font-bold">{id}</div>)}</div>
-                                                            </div>
-                                                        ))}
+                                                        {task.sprint_id && <span className="text-[8px] bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full font-bold">SPRINT</span>}
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
                                     </div>
-                                )}
+                                ))}
                             </div>
                         )}
                     </main>
 
-                    {/* Modal */}
+                    {/* TASK DETAIL MODAL */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
-                            <div className={`${isQuartz ? 'bg-white' : 'bg-[#1c1c1e]'} w-full max-w-xl h-full shadow-2xl p-8 flex flex-col animate-in slide-in-from-right duration-200`}>
-                                <div className="flex justify-between items-center mb-10 text-[11px] font-bold text-[#5E6C84]">
-                                    <span>DETAY / ID-{selectedTask.id.toString().slice(-3)}</span>
-                                    <button onClick={() => setSelectedTask(null)} className="hover:text-black"><i className="fas fa-times text-xl"></i></button>
+                            <div className={`${isDark ? 'bg-[#1c1c1e]' : 'bg-white'} w-full max-w-xl p-10 shadow-2xl animate-in slide-in-from-right`}>
+                                <div className="flex justify-between items-center mb-10">
+                                    <span className="text-[10px] font-black opacity-40 uppercase">GÖREV AYRINTILARI</span>
+                                    <button onClick={() => setSelectedTask(null)} className="text-2xl hover:text-red-500">✕</button>
                                 </div>
-                                <textarea className="text-xl font-bold bg-transparent outline-none w-full mb-8 border-b border-black/5 p-2" defaultValue={selectedTask.text} onBlur={(e) => updateTask(selectedTask.id, { text: e.target.value })} />
-                                <div className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
+                                <h2 className="text-2xl font-bold mb-10">{selectedTask.text}</h2>
+                                <div className="space-y-8">
                                     <div>
-                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-3 uppercase">ETİKETLER</label>
-                                        <div className="flex flex-wrap gap-2 mb-3">
-                                            {availableTags.map(tag => (
-                                                <button key={tag} onClick={() => {
-                                                    const next = (selectedTask.tags || []).includes(tag) ? selectedTask.tags.filter(x => x !== tag) : [...(selectedTask.tags || []), tag];
-                                                    updateTask(selectedTask.id, { tags: next });
-                                                }} className={`tag-badge border transition-all ${(selectedTask.tags || []).includes(tag) ? 'bg-[#0052CC] text-white border-transparent' : 'border-black/10'}`}>{tag}</button>
-                                            ))}
-                                        </div>
-                                        <input type="text" placeholder="Yeni etiket..." className="w-full p-2 text-xs rounded border border-black/10 bg-transparent outline-none focus:border-[#0052CC]" onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value.trim()) { updateTask(selectedTask.id, { tags: [...(selectedTask.tags || []), e.target.value.trim()] }); e.target.value = ""; } }} />
+                                        <label className="text-[10px] font-black opacity-30 uppercase block mb-2">Sprint Ataması</label>
+                                        <select 
+                                            className="w-full bg-transparent border border-zinc-700 p-3 rounded-xl text-sm"
+                                            value={selectedTask.sprint_id || ""}
+                                            onChange={e => updateTask(selectedTask.id, { sprint_id: e.target.value || null })}
+                                        >
+                                            <option value="">Backlog (Havuz)</option>
+                                            {sprints.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div><label className="text-[11px] font-bold text-[#5E6C84] block mb-2 uppercase">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={(e) => updateTask(selectedTask.id, { start_date: e.target.value })} className="w-full p-2 rounded border border-black/10 bg-transparent text-sm" /></div>
-                                        <div><label className="text-[11px] font-bold text-[#5E6C84] block mb-2 uppercase">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={(e) => updateTask(selectedTask.id, { end_date: e.target.value })} className="w-full p-2 rounded border border-black/10 bg-transparent text-sm" /></div>
+                                    <div className="pt-8 border-t border-zinc-800">
+                                        <button onClick={() => setSelectedTask(null)} className="w-full bg-blue-600 p-4 rounded-xl font-bold text-white shadow-xl hover:bg-blue-700">KAYDET VE ÇIK</button>
                                     </div>
-                                    <div>
-                                        <label className="text-[11px] font-bold text-[#5E6C84] block mb-2 uppercase">ATANANLAR</label>
-                                        <div className="flex gap-2">
-                                            {TEAM.map(u => (
-                                                <button key={u.id} onClick={() => {
-                                                    const cur = selectedTask.assignee || [];
-                                                    const next = cur.includes(u.id) ? cur.filter(x => x !== u.id) : [...cur, u.id];
-                                                    updateTask(selectedTask.id, { assignee: next });
-                                                }} className={`px-4 py-2 rounded text-[10px] font-bold border transition-all ${(selectedTask.assignee || []).includes(u.id) ? 'bg-[#0052CC] text-white border-transparent' : 'border-black/10 opacity-50'}`}>{u.name}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-4 rounded font-bold text-xs shadow-xl hover:bg-[#0747A6] transition-all">KAYDET VE KAPAT</button>
                                 </div>
                             </div>
                         </div>
