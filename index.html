@@ -12,13 +12,12 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; background-color: #F4F5F7; color: #172B4D; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F4F5F7; color: #172B4D; overflow: hidden; margin: 0; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .quartz-card { background: white; border: 1px solid #EBECF0; box-shadow: 0 1px 2px rgba(9,30,66,0.1); border-radius: 12px; }
-        .quartz-card:hover { box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25); }
-        .quartz-input { background: #FAFBFC; border: 2px solid #DFE1E6; border-radius: 8px; padding: 12px; width: 100%; outline: none; transition: all 0.2s; color: #172B4D; }
+        .quartz-card { background: white; border: 1px solid #EBECF0; box-shadow: 0 1px 2px rgba(9,30,66,0.25); border-radius: 12px; }
+        .quartz-input { background: #FAFBFC; border: 2px solid #DFE1E6; border-radius: 8px; padding: 12px; width: 100%; outline: none; transition: all 0.2s; color: #172B4D; font-weight: 500; }
         .quartz-input:focus { border-color: #0052CC; background: white; }
         .view-active { border-bottom: 3px solid #0052CC; color: #0052CC; font-weight: 800; opacity: 1 !important; }
         .column-width { min-width: 300px; width: 300px; }
@@ -26,7 +25,6 @@
         .gantt-sidebar { width: 260px; flex-shrink: 0; position: sticky; left: 0; z-index: 60; border-right: 1px solid #DCDFE4; background: #EBECF0; color: #42526E; font-weight: 800; }
         .day-cell { flex-shrink: 0; text-align: center; border-right: 1px solid rgba(0,0,0,0.05); height: 100%; }
         .task-completed { opacity: 0.5; text-decoration: line-through; filter: grayscale(1); }
-        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -42,10 +40,10 @@
         const TEAM_INITIALS = ["AR", "BD", "YE", "RASG"];
         const IMPORTANCE_LEVELS = ["Acil", "Orta önem düzeyi", "Düşük önem düzeyi"];
 
-        function App() {
+        function MainApp() {
             const [session, setSession] = useState(null);
             const [profile, setProfile] = useState(null);
-            const [isAdminMode, setIsAdminMode] = useState(false);
+            const [isAdminPortal, setIsAdminPortal] = useState(false);
             const [authTab, setAuthTab] = useState('login');
 
             const [tasks, setTasks] = useState([]);
@@ -60,7 +58,7 @@
             const [ganttZoom, setGanttZoom] = useState(45);
             const [draggedTaskId, setDraggedTaskId] = useState(null);
             const [activeSprintId, setActiveSprintId] = useState(null);
-            const [filters, setFilters] = useState({ assignees: [], tags: [], statuses: [] });
+            const [filters, setFilters] = useState({ assignees: [] });
 
             const ganttScrollRef = useRef(null);
 
@@ -69,7 +67,6 @@
                     setSession(session);
                     if (session) fetchProfile(session.user.id);
                 });
-
                 const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
                     setSession(session);
                     if (session) fetchProfile(session.user.id);
@@ -93,16 +90,11 @@
                 if (spr?.length > 0) setActiveSprintId(spr[0].id);
             };
 
-            const fetchAdminPortal = async () => {
+            const fetchAdminPortalData = async () => {
                 const { data: u } = await supabase.from('profiles').select('*, teams(name)');
                 const { data: t } = await supabase.from('teams').select('*').order('name');
                 setAllUsers(u || []);
                 setTeams(t || []);
-            };
-
-            const fetchComments = async (tid) => {
-                const { data } = await supabase.from('comments').select('*').eq('task_id', tid).order('created_at');
-                setComments(data || []);
             };
 
             const handleAuth = async (e) => {
@@ -112,37 +104,43 @@
 
                 if (authTab === 'admin') {
                     if (email === "RASGADMIN" && password === "RASGADMIN") {
-                        setIsAdminMode(true);
-                        setProfile({ username: 'Yönetici', is_admin: true });
-                        fetchAdminPortal();
-                    } else alert("Admin erişimi reddedildi!");
+                        setIsAdminPortal(true);
+                        setProfile({ username: 'Sistem Yöneticisi', is_admin: true });
+                        fetchAdminPortalData();
+                    } else alert("Yönetici girişi başarısız!");
                     return;
                 }
 
                 if (authTab === 'register') {
                     const { data, error } = await supabase.auth.signUp({ email, password });
-                    if (error) alert("Hata: " + error.message);
+                    if (error) alert(error.message);
                     else if (data.user) {
                         await supabase.from('profiles').insert([{ id: data.user.id, username: email.split('@')[0] }]);
-                        alert("Kayıt başarılı! Lütfen " + email + " adresine gönderilen doğrulama linkine tıklayın.");
+                        alert("Kayıt başarılı! Lütfen mail adresinize gelen onay linkine tıklayın.");
                         setAuthTab('login');
                     }
                 } else {
                     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                    if (error) alert("Giriş Hatası: " + error.message);
+                    if (error) alert("Giriş başarısız: " + error.message);
                     else { setSession(data.session); fetchProfile(data.user.id); }
                 }
             };
 
-            const logout = async () => {
-                await supabase.auth.signOut();
-                location.reload();
+            // --- ADMIN ACTIONS ---
+            const createTeam = async () => {
+                const n = prompt("Yeni Ekip Adı?");
+                if(n) { await supabase.from('teams').insert([{name:n}]); fetchAdminPortalData(); }
+            };
+            const deleteTeam = async (id) => {
+                if(confirm("Ekibi sildiğinizde bağlı tüm görevler silinir. Emin misiniz?")) {
+                    await supabase.from('teams').delete().eq('id', id); fetchAdminPortalData();
+                }
             };
 
-            const updateTask = async (tid, updates) => {
-                await supabase.from('tasks').update(updates).eq('id', tid);
+            const updateTask = async (id, updates) => {
+                await supabase.from('tasks').update(updates).eq('id', id);
                 fetchTeamData(profile.team_id);
-                if(selectedTask?.id === tid) setSelectedTask(prev => ({ ...prev, ...updates }));
+                if(selectedTask?.id === id) setSelectedTask(p=>({...p, ...updates}));
             };
 
             const addTask = async (isQ = false, aid = null, cslug = null) => {
@@ -150,27 +148,24 @@
                 await supabase.from('tasks').insert([{ 
                     text, is_quick: isQ, assignee: aid ? [aid] : [], 
                     status: cslug || columns[0]?.slug || 'todo', team_id: profile.team_id,
-                    importance: 'Düşük önem düzeyi'
+                    importance: 'Normal'
                 }]);
                 fetchTeamData(profile.team_id);
             };
 
-            const toggleFilter = (type, val) => setFilters(p => ({ ...p, [type]: p[type].includes(val) ? p[type].filter(v => v !== val) : [...p[type], val] }));
+            const fetchComments = async (tid) => {
+                const { data } = await supabase.from('comments').select('*').eq('task_id', tid).order('created_at');
+                setComments(data || []);
+            };
 
             const filteredTasks = useMemo(() => {
                 return tasks.filter(t => {
                     if (currentView === 'quick_tasks') return t.is_quick;
                     if (t.is_quick) return false;
                     const matchA = filters.assignees.length === 0 || (t.assignee || []).some(a => filters.assignees.includes(a));
-                    const matchS = filters.statuses.length === 0 || filters.statuses.includes(t.status);
-                    return matchA && matchS;
+                    return matchA;
                 });
             }, [tasks, filters, currentView]);
-
-            const globalTags = useMemo(() => {
-                const tags = new Set(); tasks.forEach(t => (t.tags || []).forEach(tag => tags.add(tag)));
-                return Array.from(tags);
-            }, [tasks]);
 
             const ganttStartDate = new Date(2025, 11, 1);
             const ganttEndDate = new Date(2027, 0, 31);
@@ -180,54 +175,60 @@
                 return days;
             }, []);
 
-            if (!session && !isAdminMode) {
+            if (!session && !isAdminPortal) {
                 return (
                     <div className="min-h-screen flex items-center justify-center bg-[#091E42] p-6">
                         <div className="bg-white p-10 rounded-[40px] w-full max-w-sm shadow-2xl">
-                            <h2 className="text-3xl font-black text-[#172B4D] mb-8 italic text-center tracking-tighter uppercase">RASG HUB</h2>
+                            <h2 className="text-3xl font-black text-[#172B4D] mb-8 italic text-center uppercase tracking-tighter">RASG HUB</h2>
                             <div className="flex bg-[#F4F5F7] p-1 rounded-2xl mb-8 font-black text-[10px]">
                                 <button onClick={()=>setAuthTab('login')} className={`flex-1 py-3 rounded-xl transition ${authTab==='login'?'bg-white shadow text-[#0052CC]':'text-slate-400'}`}>GİRİŞ</button>
                                 <button onClick={()=>setAuthTab('register')} className={`flex-1 py-3 rounded-xl transition ${authTab==='register'?'bg-white shadow text-[#0052CC]':'text-slate-400'}`}>KAYIT</button>
                                 <button onClick={()=>setAuthTab('admin')} className={`flex-1 py-3 rounded-xl transition ${authTab==='admin'?'bg-white shadow text-red-600':'text-slate-400'}`}>ADMIN</button>
                             </div>
                             <form onSubmit={handleAuth} className="space-y-4">
-                                <input name="email" type={authTab==='admin'?'text':'email'} placeholder={authTab==='admin'?'Admin Kullanıcı':'E-posta Adresiniz'} className="quartz-input" required />
+                                <input name="email" type={authTab==='admin'?'text':'email'} placeholder={authTab==='admin'?'Admin Adı':'E-posta Adresiniz'} className="quartz-input" required />
                                 <input name="password" type="password" placeholder="Şifre" className="quartz-input" required />
                                 <button className={`w-full py-4 rounded-2xl font-black text-white shadow-xl transition uppercase tracking-widest ${authTab==='admin'?'bg-red-600':'bg-[#0052CC]'}`}>
-                                    {authTab === 'register' ? 'Hesap Oluştur' : 'Sisteme Bağlan'}
+                                    {authTab === 'register' ? 'Üye Ol' : 'Sisteme Bağlan'}
                                 </button>
                             </form>
-                            <p className="mt-6 text-[10px] text-slate-400 text-center font-bold uppercase opacity-50">Enterprise Project Management</p>
                         </div>
                     </div>
                 );
             }
 
-            if (isAdminMode) {
+            if (isAdminPortal) {
                 return (
                     <div className="h-screen flex bg-[#F4F5F7]">
-                        <aside className="w-72 bg-white border-r border-[#DFE1E6] p-8 flex flex-col shadow-sm">
-                            <h1 className="text-2xl font-black text-red-600 mb-12 italic uppercase">ADMIN PORTAL</h1>
-                            <button onClick={async()=>{const n=prompt("Ekip Adı?"); if(n) { await supabase.from('teams').insert([{name:n}]); fetchAdminPortal(); }}} className="w-full bg-[#0052CC] text-white p-4 rounded-2xl font-black text-xs uppercase mb-4 shadow-lg">+ YENİ EKİP EKLE</button>
+                        <aside className="w-72 bg-white border-r p-8 flex flex-col shadow-sm">
+                            <h1 className="text-2xl font-black text-red-600 mb-12 italic uppercase">ADMIN HUB</h1>
+                            <button onClick={createTeam} className="w-full bg-[#0052CC] text-white p-4 rounded-2xl font-black text-xs uppercase mb-4 shadow-lg">+ YENİ EKİP EKLE</button>
                             <button onClick={()=>location.reload()} className="mt-auto p-4 bg-slate-100 rounded-2xl font-bold text-xs text-slate-500 hover:text-red-600 transition uppercase">GÜVENLİ ÇIKIŞ</button>
                         </aside>
-                        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar">
-                            <h2 className="text-3xl font-black mb-10 tracking-tight text-[#172B4D]">Kullanıcı & Ekip Yönetimi</h2>
+                        <main className="flex-1 p-12 overflow-y-auto">
+                            <h2 className="text-3xl font-black mb-10 tracking-tight text-[#172B4D]">Ekip & Kullanıcı Yönetimi</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 font-bold uppercase text-[10px]">
+                                {teams.map(t => (
+                                    <div key={t.id} className="bg-white p-6 rounded-3xl border flex justify-between items-center shadow-sm">
+                                        <span>{t.name}</span>
+                                        <button onClick={()=>deleteTeam(t.id)} className="text-red-500 hover:scale-110 transition-all"><i className="fas fa-trash-alt"></i></button>
+                                    </div>
+                                ))}
+                            </div>
                             <div className="bg-white rounded-[32px] border overflow-hidden shadow-xl">
                                 <table className="w-full text-left font-medium">
-                                    <thead className="bg-[#FAFBFC] border-b text-[10px] font-black text-slate-400 uppercase tracking-widest"><tr><th className="p-6">KULLANICI (E-POSTA)</th><th className="p-6">DURUM</th><th className="p-6">YÖNET</th><th className="p-6">SİL</th></tr></thead>
+                                    <thead className="bg-[#FAFBFC] border-b text-[10px] font-black text-slate-400 uppercase tracking-widest"><tr><th className="p-6">KULLANICI</th><th className="p-6">MEVCUT EKİP</th><th className="p-6 text-right">ATAMA</th></tr></thead>
                                     <tbody className="divide-y">
                                         {allUsers.filter(u=>!u.is_admin).map(u => (
                                             <tr key={u.id} className="hover:bg-[#F4F5F7]">
                                                 <td className="p-6 font-bold">{u.username}</td>
                                                 <td className="p-6"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.teams?'bg-[#E3FCEF] text-[#006644]':'bg-slate-100 text-slate-400'}`}>{u.teams?.name || 'BOŞTA'}</span></td>
-                                                <td className="p-6">
-                                                    <select onChange={async(e)=> { await supabase.from('profiles').update({ team_id: e.target.value || null }).eq('id', u.id); fetchAdminPortal(); }} value={u.team_id || ""} className="p-2 border rounded-xl text-[10px] font-bold outline-none">
+                                                <td className="p-6 text-right">
+                                                    <select onChange={async(e)=> { await supabase.from('profiles').update({ team_id: e.target.value || null }).eq('id', u.id); fetchAdminPortalData(); }} value={u.team_id || ""} className="p-2 border rounded-xl text-xs font-bold outline-none">
                                                         <option value="">Ekip Seç...</option>
                                                         {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                                     </select>
                                                 </td>
-                                                <td className="p-6"><button onClick={async()=>{if(confirm("Sil?")){await supabase.from('profiles').delete().eq('id', u.id); fetchAdminPortal();}}} className="text-red-500"><i className="fas fa-trash-alt"></i></button></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -240,7 +241,7 @@
 
             return (
                 <div className="h-screen flex flex-col">
-                    <header className="p-4 bg-white border-b border-[#DCDFE4] flex justify-between items-center z-50 shadow-sm">
+                    <header className="p-4 bg-white border-b border-[#DCDFE4] flex justify-between items-center z-50">
                         <div className="flex items-center gap-8">
                             <h1 className="font-black italic text-lg text-[#172B4D]">RASG 2026</h1>
                             {profile?.team_id && (
@@ -252,17 +253,17 @@
                             )}
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="text-right mr-2">
+                            <div className="text-right">
                                 <p className="text-xs font-black text-[#172B4D]">{profile?.username}</p>
-                                <p className="text-[9px] font-bold text-[#0052CC] uppercase">{profile?.teams?.name || "EKİPSİZ"}</p>
+                                <p className="text-[9px] font-bold text-[#0052CC] uppercase">{profile?.teams?.name || "EKİP ATAMASI BEKLENİYOR"}</p>
                             </div>
-                            <button onClick={logout} className="ml-2 text-[#DE350B] hover:scale-110 transition-all"><i className="fas fa-power-off text-xl"></i></button>
+                            <button onClick={logout} className="ml-2 text-[#DE350B] hover:scale-110 transition-all font-black">ÇIKIŞ <i className="fas fa-sign-out-alt ml-1"></i></button>
                         </div>
                     </header>
 
                     <main className="flex-1 overflow-hidden relative bg-[#F4F5F7]">
                         {!profile?.team_id ? (
-                            <div className="h-full flex items-center justify-center p-20 text-center"><div className="bg-white p-12 rounded-[40px] shadow-2xl border max-w-sm"><i className="fas fa-user-shield text-5xl text-blue-600 mb-6 opacity-20"></i><h2 className="text-2xl font-black">Erişim Bekleniyor</h2><p className="text-slate-400 mt-4 font-bold">Lütfen Admin'in sizi bir ekibe atamasını bekleyin.</p></div></div>
+                            <div className="h-full flex items-center justify-center p-20 text-center"><div className="bg-white p-12 rounded-[40px] shadow-2xl border max-w-sm"><i className="fas fa-user-lock text-5xl text-blue-600 mb-6 opacity-20"></i><h2 className="text-2xl font-black">Erişim Bekleniyor</h2><p className="text-slate-400 mt-4 font-bold">Admin'in sizi bir ekibe atamasını bekleyin.</p></div></div>
                         ) : (
                             <div className="h-full flex flex-col p-8 overflow-hidden">
                                 {currentView === 'board' && (
@@ -270,7 +271,7 @@
                                         {columns.map(col => (
                                             <div key={col.id} className="column-width flex flex-col" onDragOver={e => e.preventDefault()} onDrop={async () => { if(draggedTaskId) { await supabase.from('tasks').update({ status: col.slug }).eq('id', draggedTaskId); fetchTeamData(profile.team_id); setDraggedTaskId(null); } }}>
                                                 <div className="mb-4 flex justify-between items-center px-1 font-black text-[11px] uppercase text-[#5E6C84] opacity-50"><span>{col.title}</span><span>{filteredTasks.filter(t=>t.status===col.slug).length}</span></div>
-                                                <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+                                                <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                                                     {filteredTasks.filter(t=>t.status===col.slug).map(task => (
                                                         <div key={task.id} draggable onDragStart={()=>setDraggedTaskId(task.id)} onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className="p-5 quartz-card group hover:border-[#0052CC] cursor-pointer"><p className="text-[14px] font-bold text-[#172B4D] leading-relaxed">{task.text}</p></div>
                                                     ))}
@@ -278,7 +279,7 @@
                                                 </div>
                                             </div>
                                         ))}
-                                        <button onClick={async()=>{const t=prompt("Sütun?"); if(t) await supabase.from('columns').insert([{title:t, slug: t.toLowerCase().replace(/ /g,'_'), team_id: profile.team_id, order_index: columns.length+1}]); fetchTeamData(profile.team_id);}} className="column-width border-2 border-dashed border-[#DFE1E6] rounded-[32px] text-[10px] font-black text-slate-300 hover:text-[#0052CC] transition uppercase tracking-widest shadow-inner">+ SÜTUN EKLE</button>
+                                        <button onClick={async()=>{const t=prompt("Sütun?"); if(t) await supabase.from('columns').insert([{title:t, slug: t.toLowerCase().replace(/ /g,'_'), team_id: profile.team_id, order_index: columns.length+1}]); fetchTeamData(profile.team_id);}} className="column-width border-2 border-dashed border-[#DFE1E6] rounded-[32px] text-[10px] font-black text-slate-300 hover:text-[#0052CC] transition uppercase tracking-widest">+ SÜTUN</button>
                                     </div>
                                 )}
                                 {currentView === 'quick_tasks' && (
@@ -286,12 +287,12 @@
                                         {TEAM_INITIALS.map(init => (
                                             <div key={init} className="column-width flex flex-col bg-white/40 rounded-[32px] border border-[#DFE1E6] p-5 shadow-inner">
                                                 <div className="flex items-center gap-3 mb-8 px-1"><div className="w-10 h-10 rounded-full bg-[#0052CC] flex items-center justify-center text-[12px] font-black text-white shadow-lg">{init}</div><span className="font-black text-sm text-[#172B4D] uppercase">{init} ALANI</span></div>
-                                                <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-                                                    {filteredTasks.filter(t => t.is_quick && (t.assignee || []).includes(init)).map(task => (
+                                                <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                                                    {tasks.filter(t => t.is_quick && (t.assignee || []).includes(init) && t.team_id === profile.team_id).map(task => (
                                                         <div key={task.id} className={`p-4 rounded-xl bg-white border border-[#DFE1E6] shadow-sm ${task.is_completed ? 'task-completed' : ''}`}>
                                                             <div className="flex items-start gap-3">
                                                                 <input type="checkbox" checked={task.is_completed} onChange={e => { supabase.from('tasks').update({is_completed: e.target.checked}).eq('id', task.id).then(()=>fetchTeamData(profile.team_id)) }} className="mt-1 w-4 h-4 rounded-full accent-[#36B37E] cursor-pointer" />
-                                                                <div className="flex-1" onClick={()=>{setSelectedTask(task);}}><p className="text-[14px] font-bold text-[#172B4D]">{task.text}</p></div>
+                                                                <div className="flex-1" onClick={()=>{setSelectedTask(task); fetchComments(task.id);}}><p className="text-[14px] font-bold text-[#172B4D]">{task.text}</p></div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -301,10 +302,28 @@
                                         ))}
                                     </div>
                                 )}
+                                {currentView === 'list' && (
+                                    <div className="h-full overflow-y-auto p-12 max-w-5xl mx-auto custom-scrollbar">
+                                        {columns.map(col => {
+                                            const colTasks = filteredTasks.filter(t => t.status === col.slug);
+                                            if (colTasks.length === 0) return null;
+                                            return (
+                                                <div key={col.id} className="mb-10">
+                                                    <div className="text-[11px] font-black uppercase text-[#5E6C84] mb-3 border-b pb-2">{col.title}</div>
+                                                    <div className="rounded-xl bg-white shadow-sm border divide-y">
+                                                        {colTasks.map(task => (
+                                                            <div key={task.id} onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className="p-4 hover:bg-[#F4F5F7] flex items-center cursor-pointer font-bold text-sm text-[#172B4D]"><span className="flex-1">{task.text}</span><span className="text-[10px] text-[#5E6C84]">{task.end_date || '--'}</span></div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {currentView === 'gantt' && (
-                                    <div className="gantt-container h-full rounded-[24px] border border-[#DCDFE4] shadow-xl overflow-hidden">
+                                    <div className="gantt-container h-full rounded-[24px] border shadow-xl overflow-hidden">
                                         <div className="gantt-main-scroll custom-scrollbar" ref={ganttScrollRef}>
-                                            <div className="gantt-timeline-header flex sticky top-0 z-30">
+                                            <div className="gantt-timeline-header flex sticky top-0 z-30 shadow-sm">
                                                 <div className="gantt-sidebar p-4 font-black text-[11px] uppercase border-r border-[#DCDFE4]">GÖREV LİSTESİ</div>
                                                 {ganttDays.map((date, i) => (
                                                     <div key={i} className={`day-cell p-2 flex flex-col items-center ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''}`} style={{ width: ganttZoom, minWidth: ganttZoom }}>
@@ -322,11 +341,11 @@
                                                     w = (Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1) * ganttZoom;
                                                 }
                                                 return (
-                                                    <div key={task.id} className="gantt-grid-row flex">
+                                                    <div key={task.id} className="gantt-grid-row flex group hover:bg-[#F4F5F7]">
                                                         <div className="gantt-sidebar p-3 truncate text-[12px] font-bold text-[#172B4D] border-r border-[#DCDFE4]">{task.text}</div>
                                                         <div className="flex-1 flex relative h-full min-w-max">
                                                             {ganttDays.map((_, i) => <div key={i} className="day-cell h-full border-r border-black/[0.03]" style={{ width: ganttZoom, minWidth: ganttZoom }}></div>)}
-                                                            {w > 0 && <div onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className="absolute top-2.5 h-7 bg-[#0052CC] rounded-md shadow-lg flex items-center px-3 cursor-pointer z-20" style={{ left: l, width: w }}><span className="text-[9px] text-white font-black truncate">{task.text}</span></div>}
+                                                            {w > 0 && <div onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className={`absolute top-2.5 h-7 bg-[#0052CC] rounded-md shadow-lg flex items-center px-3 cursor-pointer z-20`} style={{ left: l, width: w }}><span className="text-[9px] text-white font-black truncate">{task.text}</span></div>}
                                                         </div>
                                                     </div>
                                                 )
@@ -334,27 +353,89 @@
                                         </div>
                                     </div>
                                 )}
+                                {currentView === 'sprints' && (
+                                    <div className="h-full flex flex-col p-4">
+                                        <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-[24px] border shadow-sm">
+                                            <div className="flex gap-4 items-center">
+                                                <select className="quartz-input w-64 text-xs font-black uppercase" value={activeSprintId || ""} onChange={e => setActiveSprintId(e.target.value)}>
+                                                    {sprints.map(s => <option key={s.id} value={s.id}>{s.name} ({s.start_date} / {s.end_date})</option>)}
+                                                </select>
+                                                <button onClick={async () => { const s = prompt("Start (YYYY-MM-DD)?"); const e = prompt("End?"); if(s&&e) await supabase.from('sprints').insert([{name: 'Sprint', start_date:s, end_date:e, team_id: profile.team_id}]).then(()=>fetchTeamData(profile.team_id)); }} className="bg-[#DEEBFF] text-[#0052CC] text-[10px] font-black px-5 py-2.5 rounded-xl border-2 hover:bg-[#0052CC] hover:text-white transition uppercase">+ SPRINT</button>
+                                            </div>
+                                            <button onClick={async()=>{if(confirm("Tümünü Sil?")){await supabase.from('sprints').delete().eq('team_id', profile.team_id); fetchTeamData(profile.team_id);}}} className="text-[#DE350B] text-[10px] font-black uppercase tracking-widest bg-[#FFEBE6] px-5 py-2.5 rounded-xl border-2 hover:bg-[#DE350B] hover:text-white transition">SIFIRLA</button>
+                                        </div>
+                                        <div className="flex-1 flex gap-8 overflow-hidden">
+                                            <div className="flex-1 bg-[#EBECF0]/40 rounded-[40px] p-8 border flex flex-col shadow-inner">
+                                                <h3 className="text-xs font-black uppercase mb-6 text-[#5E6C84] italic">Backlog (İş Havuzu)</h3>
+                                                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                                                    {filteredTasks.filter(t => !t.sprint_id).map(task => (
+                                                        <div key={task.id} className="p-5 rounded-[20px] bg-white border flex justify-between items-center hover:border-[#0052CC] transition">
+                                                            <span className="text-sm font-bold">{task.text}</span>
+                                                            <button onClick={() => updateTask(task.id, { sprint_id: activeSprintId })} className="bg-[#0052CC] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Ekle</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 bg-white rounded-[40px] p-8 border-2 border-[#DEEBFF] flex flex-col shadow-2xl relative">
+                                                <h3 className="text-xs font-black uppercase mb-6 text-[#0052CC] italic">Aktif Sprint</h3>
+                                                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                                                    {filteredTasks.filter(t => t.sprint_id == activeSprintId).map(task => (
+                                                        <div key={task.id} className="p-5 rounded-[20px] bg-white border-2 border-[#B3D4FF] flex justify-between items-center shadow-md">
+                                                            <span className="text-sm font-bold text-[#0052CC]">{task.text}</span>
+                                                            <button onClick={() => updateTask(task.id, { sprint_id: null })} className="text-[#DE350B] text-[10px] font-black uppercase hover:underline">Geri Al</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </main>
 
+                    {/* SHARED MODAL */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
-                            <div className="bg-white w-full max-w-xl h-full shadow-2xl p-10 flex flex-col overflow-y-auto animate-in slide-in-from-right">
+                            <div className="bg-white w-full max-w-xl h-full shadow-2xl p-12 flex flex-col overflow-y-auto animate-in slide-in-from-right">
                                 <div className="flex justify-between items-center mb-8">
-                                    <span className="text-[11px] font-black text-[#0052CC] uppercase italic opacity-40 tracking-widest">İŞ AYRINTILARI</span>
-                                    <div className="flex gap-4 items-center">
-                                        <button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchTeamData(profile.team_id);}}} className="text-[#DE350B] hover:scale-110 transition-all"><i className="fas fa-trash-alt text-xl"></i></button>
-                                        <button onClick={()=>setSelectedTask(null)} className="text-[#42526E] hover:text-black text-2xl">✕</button>
+                                    <span className="text-[11px] font-black text-[#0052CC] uppercase tracking-widest opacity-40">GÖREV AYRINTILARI</span>
+                                    <div className="flex gap-4">
+                                        <button onClick={async()=>{if(confirm("Silin?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchTeamData(profile.team_id);}}} className="text-[#DE350B]"><i className="fas fa-trash-alt text-2xl"></i></button>
+                                        <button onClick={()=>setSelectedTask(null)} className="text-3xl">✕</button>
                                     </div>
                                 </div>
-                                <input className="text-3xl font-black bg-transparent border-b-2 border-[#EBECF0] outline-none w-full mb-10 pb-2 text-[#172B4D] focus:border-[#4C9AFF]" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
+                                <textarea className="text-3xl font-black bg-transparent border-b-2 border-[#EBECF0] outline-none w-full mb-10 pb-2 text-[#172B4D] focus:border-[#4C9AFF]" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
                                 <div className="space-y-10">
                                     <div className="grid grid-cols-2 gap-8">
-                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3 ml-1">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="quartz-input" /></div>
-                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3 ml-1">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="quartz-input" /></div>
+                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="quartz-input" /></div>
+                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="quartz-input" /></div>
                                     </div>
-                                    <button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#0747A6] transition-all">KAYDET VE KAPAT</button>
+                                    <div>
+                                        <label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-4 tracking-widest">Sorumlu Ekip</label>
+                                        <div className="flex gap-3">
+                                            {TEAM_INITIALS.map(u=><button key={u} onClick={()=>{const cur=selectedTask.assignee||[]; const next=cur.includes(u)?cur.filter(x=>x!==u):[...cur,u]; updateTask(selectedTask.id,{assignee:next});}} className={`px-5 py-2.5 rounded-xl text-[11px] font-black border-2 transition-all ${selectedTask.assignee?.includes(u)?`bg-[#0052CC] border-transparent text-white shadow-lg`:'border-[#DFE1E6] text-[#42526E]'}`}>{u}</button>)}
+                                        </div>
+                                    </div>
+                                    {/* Yorum Sistemi */}
+                                    <div className="pt-8 border-t border-[#EBECF0]">
+                                        <label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-6 italic">Aktivite & Yorumlar</label>
+                                        <div className="space-y-4 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
+                                            {comments.map(c => (
+                                                <div key={c.id} className="flex gap-3">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black text-white ${TEAM_INITIALS.find(t => t === c.user_id) ? 'bg-[#0052CC]' : 'bg-slate-400'}`}>{c.user_id}</div>
+                                                    <div className="bg-[#F4F5F7] p-3 rounded-2xl border border-[#EBECF0] flex-1 text-sm font-medium text-[#172B4D]">{c.text}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="bg-[#FAFBFC] p-4 rounded-2xl border-2 border-[#EBECF0] focus-within:border-[#4C9AFF] transition-all">
+                                            <textarea id="commIn" className="w-full bg-transparent outline-none text-sm font-medium min-h-[60px] resize-none" placeholder="Bir not bırakın..."></textarea>
+                                            <div className="flex gap-2 mt-3 pt-3 border-t border-[#EBECF0]">
+                                                {TEAM_INITIALS.map(u => <button key={u} onClick={async () => { const v = document.getElementById('commIn').value; if(v){ await supabase.from('comments').insert([{task_id:selectedTask.id, text:v, user_id:u}]); document.getElementById('commIn').value=""; fetchComments(selectedTask.id); } }} className="bg-[#0052CC] text-white text-[8px] px-3 py-1 rounded-full font-black uppercase shadow-sm">{u} OLARAK GÖNDER</button>)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-5 rounded-2xl font-black uppercase text-xs shadow-xl hover:bg-[#0747A6] transition-all">KAYDET VE KAPAT</button>
                                 </div>
                             </div>
                         </div>
