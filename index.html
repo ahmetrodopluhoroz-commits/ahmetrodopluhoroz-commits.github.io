@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG HUB | 2026 Crystal Edition</title>
+    <title>RASG HUB | 2026 Enterprise</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -12,30 +12,19 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; background-color: #F4F5F7; color: #172B4D; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F4F5F7; color: #172B4D; overflow: hidden; margin: 0; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .column-width { min-width: 320px; width: 320px; }
-        .modal-overlay { background-color: rgba(9, 30, 66, 0.54); backdrop-filter: blur(4px); z-index: 100; }
-        
-        /* Crystal Quartz Components */
-        .quartz-card { background-color: #FFFFFF; border: 1px solid #EBECF0; box-shadow: 0 1px 2px 0 rgba(9, 30, 66, 0.25); transition: all 0.2s ease; }
-        .quartz-card:hover { box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31); }
-        .quartz-input { background-color: #FAFBFC; border: 2px solid #DFE1E6; border-radius: 8px; padding: 10px 14px; outline: none; transition: all 0.2s; color: #172B4D; font-weight: 500; }
-        .quartz-input:focus { background-color: #FFFFFF; border-color: #4C9AFF; box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2); }
+        .quartz-card { background: white; border: 1px solid #EBECF0; box-shadow: 0 1px 2px rgba(9,30,66,0.25); border-radius: 12px; }
+        .quartz-input { background: #FAFBFC; border: 2px solid #DFE1E6; border-radius: 12px; padding: 12px 16px; outline: none; width: 100%; transition: all 0.2s; font-weight: 500; }
+        .quartz-input:focus { border-color: #4C9AFF; background: white; }
         .view-active { border-bottom: 3px solid #0052CC; color: #0052CC; font-weight: 800; opacity: 1 !important; }
-        .task-completed { opacity: 0.5; text-decoration: line-through; filter: grayscale(1); }
-        
-        /* Gantt Mimarisi */
-        .gantt-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; background: #fff; }
-        .gantt-main-scroll { flex: 1; overflow-x: auto; overflow-y: auto; }
-        .gantt-timeline-header { display: flex; position: sticky; top: 0; z-index: 50; background: #EBECF0; border-bottom: 1px solid #DCDFE4; }
-        .gantt-sidebar { width: 280px; flex-shrink: 0; position: sticky; left: 0; z-index: 60; border-right: 1px solid #DCDFE4; background: #EBECF0; color: #42526E; font-weight: 800; }
+        .column-width { min-width: 300px; width: 300px; }
+        .modal-overlay { background-color: rgba(9, 30, 66, 0.54); backdrop-filter: blur(4px); z-index: 100; }
+        .gantt-sidebar { width: 260px; flex-shrink: 0; position: sticky; left: 0; z-index: 60; border-right: 1px solid #DCDFE4; background: #EBECF0; color: #42526E; font-weight: 800; }
         .day-cell { flex-shrink: 0; text-align: center; border-right: 1px solid rgba(0,0,0,0.05); height: 100%; }
-        .gantt-grid-row { display: flex; min-height: 48px; border-bottom: 1px solid #EBECF0; align-items: center; background: #fff; }
-        .weekend { background-color: #F4F5F7; }
-
+        .task-completed { opacity: 0.5; text-decoration: line-through; filter: grayscale(1); }
         input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
     </style>
 </head>
@@ -45,56 +34,113 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- SUPABASE BAĞLANTISI ---
         const SUPABASE_URL = "https://tjkfrcohungwocfbimih.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_uNiAvwlIFg8r9l7e_NDI6g_A_9b-n9x";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const TEAM = [
-            { id: 'AR', name: 'Ahmet', color: 'bg-[#0052CC]' },
-            { id: 'BD', name: 'Berkan', color: 'bg-[#FF8B00]' },
-            { id: 'YE', name: 'Yiğit', color: 'bg-[#6554C0]' },
-            { id: 'RASG', name: 'RASG', color: 'bg-[#42526E]' }
-        ];
-
+        const TEAM_INITIALS = ["AR", "BD", "YE", "RASG"];
         const IMPORTANCE_LEVELS = ["Acil", "Orta önem düzeyi", "Düşük önem düzeyi"];
 
-        function App() {
-            const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [username, setUsername] = useState("");
-            const [password, setPassword] = useState("");
+        function MainApp() {
+            const [session, setSession] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [isAdminMode, setIsAdminMode] = useState(false);
+            const [authTab, setAuthTab] = useState('login');
             
             const [tasks, setTasks] = useState([]);
             const [columns, setColumns] = useState([]);
             const [sprints, setSprints] = useState([]);
             const [comments, setComments] = useState([]);
-            const [activeSprintId, setActiveSprintId] = useState(null);
-            
+            const [teams, setTeams] = useState([]);
+            const [allUsers, setAllUsers] = useState([]);
+
             const [currentView, setCurrentView] = useState('board');
             const [selectedTask, setSelectedTask] = useState(null);
-            const [draggedTaskId, setDraggedTaskId] = useState(null);
-
-            // Filtreler & Zoom
-            const [filters, setFilters] = useState({ assignees: [], tags: [], statuses: [] });
             const [ganttZoom, setGanttZoom] = useState(45);
+            const [draggedTaskId, setDraggedTaskId] = useState(null);
+            const [activeSprintId, setActiveSprintId] = useState(null);
+            const [filters, setFilters] = useState({ assignees: [], tags: [], statuses: [] });
+
             const ganttScrollRef = useRef(null);
 
-            const fetchData = async () => {
-                const { data: tsk } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
-                const { data: cols } = await supabase.from('columns').select('*').order('order_index');
-                const { data: spr } = await supabase.from('sprints').select('*').order('start_date');
-                setTasks(tsk || []); setColumns(cols || []); setSprints(spr || []);
+            useEffect(() => {
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    setSession(session);
+                    if (session) fetchProfile(session.user.id);
+                });
+            }, []);
+
+            const fetchProfile = async (uid) => {
+                const { data } = await supabase.from('profiles').select('*, teams(name)').eq('id', uid).single();
+                setProfile(data);
+                if (data?.team_id) fetchData(data.team_id);
+            };
+
+            const fetchData = async (teamId) => {
+                const { data: cols } = await supabase.from('columns').select('*').eq('team_id', teamId).order('order_index');
+                const { data: tsk } = await supabase.from('tasks').select('*').eq('team_id', teamId).order('created_at', { ascending: false });
+                const { data: spr } = await supabase.from('sprints').select('*').eq('team_id', teamId).order('start_date');
+                setColumns(cols || []);
+                setTasks(tsk || []);
+                setSprints(spr || []);
                 if (spr?.length > 0 && !activeSprintId) setActiveSprintId(spr[0].id);
             };
 
-            const fetchComments = async (tid) => {
-                const { data } = await supabase.from('comments').select('*').eq('task_id', tid).order('created_at');
-                setComments(data || []);
+            const fetchAdminData = async () => {
+                const { data: u } = await supabase.from('profiles').select('*, teams(name)');
+                const { data: t } = await supabase.from('teams').select('*').order('name');
+                setAllUsers(u || []);
+                setTeams(t || []);
             };
 
-            useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
+            // --- AUTH ---
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                const u = e.target.username.value;
+                const p = e.target.password.value;
 
-            // --- GANTT AYARLARI (Aralık 2025 - Ocak 2027) ---
+                if (authTab === 'admin') {
+                    if (u === "RASGADMIN" && p === "RASGADMIN") {
+                        setIsAdminMode(true);
+                        setProfile({ username: 'Süper Yönetici', is_admin: true });
+                        fetchAdminData();
+                    } else alert("Yönetici girişi reddedildi!");
+                    return;
+                }
+
+                if (authTab === 'register') {
+                    const { data, error } = await supabase.auth.signUp({ email: u + "@rasg.com", password: p });
+                    if (error) alert(error.message);
+                    else {
+                        await supabase.from('profiles').insert([{ id: data.user.id, username: u }]);
+                        alert("Kayıt başarılı! Giriş yapabilirsiniz.");
+                        setAuthTab('login');
+                    }
+                } else {
+                    const { data, error } = await supabase.auth.signInWithPassword({ email: u + "@rasg.com", password: p });
+                    if (error) alert("Bilgiler hatalı!");
+                    else { setSession(data.session); fetchProfile(data.user.id); }
+                }
+            };
+
+            // --- İŞLEMLER ---
+            const updateTask = async (id, updates) => { 
+                await supabase.from('tasks').update(updates).eq('id', id); 
+                fetchData(profile.team_id); 
+                if(selectedTask?.id === id) setSelectedTask(p=>({...p, ...updates}));
+            };
+
+            const addTask = async (isQ = false, aid = null, cslug = null) => {
+                const text = prompt("İş Başlığı:"); if(!text) return;
+                await supabase.from('tasks').insert([{ 
+                    text, is_quick: isQ, assignee: aid ? [aid] : [], 
+                    status: cslug || columns[0]?.slug || 'todo', team_id: profile.team_id,
+                    importance: isQ ? 'Orta önem düzeyi' : 'Düşük önem düzeyi'
+                }]);
+                fetchData(profile.team_id);
+            };
+
+            // --- GANTT & SPRINT ---
             const ganttStartDate = new Date(2025, 11, 1);
             const ganttEndDate = new Date(2027, 0, 31);
             const ganttDays = useMemo(() => {
@@ -103,22 +149,27 @@
                 return days;
             }, []);
 
-            useEffect(() => {
-                if(currentView === 'gantt' && ganttScrollRef.current) {
-                    const today = new Date();
-                    const diff = Math.floor((today - ganttStartDate) / (1000 * 60 * 60 * 24));
-                    if(diff > 0) ganttScrollRef.current.scrollLeft = (diff * ganttZoom) - 200;
+            const autoGenerateSprints = async () => {
+                const start = prompt("Başlangıç (YYYY-MM-DD)?", "2026-01-01");
+                const end = prompt("Bitiş (YYYY-MM-DD)?", "2026-12-31");
+                const days = parseInt(prompt("Kaç Gün?", "14"));
+                if(!start || !end || isNaN(days)) return;
+                let cur = new Date(start); const final = new Date(end); const newSprs = []; let i = 1;
+                while(cur < final) {
+                    let next = new Date(cur); next.setDate(cur.getDate() + days - 1);
+                    newSprs.push({ name: `Sprint ${i}`, start_date: cur.toISOString().split('T')[0], end_date: next.toISOString().split('T')[0], team_id: profile.team_id });
+                    cur.setDate(cur.getDate() + days); i++;
                 }
-            }, [currentView, ganttZoom]);
+                await supabase.from('sprints').insert(newSprs); fetchData(profile.team_id);
+            };
 
             const filteredTasks = useMemo(() => {
                 return tasks.filter(t => {
-                    if (currentView === 'quick_tasks') return t.is_quick === true;
+                    if (currentView === 'quick_tasks') return t.is_quick;
                     if (t.is_quick) return false;
                     const matchA = filters.assignees.length === 0 || (t.assignee || []).some(a => filters.assignees.includes(a));
                     const matchS = filters.statuses.length === 0 || filters.statuses.includes(t.status);
-                    const matchT = filters.tags.length === 0 || (t.tags || []).some(tag => filters.tags.includes(tag));
-                    return matchA && matchS && matchT;
+                    return matchA && matchS;
                 });
             }, [tasks, filters, currentView]);
 
@@ -127,37 +178,69 @@
                 return Array.from(tags);
             }, [tasks]);
 
-            const updateTask = async (id, updates) => { await supabase.from('tasks').update(updates).eq('id', id); fetchData(); if(selectedTask?.id === id) setSelectedTask(p=>({...p, ...updates})); };
-            
-            const addTask = async (isQ = false, aid = null, cslug = null) => {
-                const text = prompt("İş Başlığı:"); if(!text) return;
-                await supabase.from('tasks').insert([{ text, is_quick: isQ, assignee: aid ? [aid] : [], status: cslug || columns[0]?.slug || 'todo' }]);
-                fetchData();
-            };
-
             const toggleFilter = (type, val) => setFilters(p => ({ ...p, [type]: p[type].includes(val) ? p[type].filter(v => v !== val) : [...p[type], val] }));
 
-            if (!isLoggedIn) {
+            // --- RENDER GİRİŞ ---
+            if (!session && !isAdminMode) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-[#091E42]">
-                        <div className="bg-white p-10 rounded-[32px] w-full max-w-sm shadow-2xl text-center">
-                            <h2 className="text-2xl font-black mb-8 italic uppercase tracking-tighter text-[#172B4D]">RASG HUB 2026</h2>
-                            <form onSubmit={(e) => { e.preventDefault(); if(username==="RASG" && password==="RASG2026") setIsLoggedIn(true); else alert("Hatalı!"); }} className="space-y-4 text-left">
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kullanıcı</label>
-                                <input type="text" placeholder="RASG" onChange={e => setUsername(e.target.value)} className="quartz-input w-full" /></div>
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Şifre</label>
-                                <input type="password" placeholder="••••" onChange={e => setPassword(e.target.value)} className="quartz-input w-full" /></div>
-                                <button className="w-full bg-[#0052CC] p-4 rounded-xl font-black text-white uppercase tracking-widest hover:bg-[#0747A6] transition shadow-lg mt-4">GİRİŞ YAP</button>
+                    <div className="min-h-screen flex items-center justify-center bg-[#091E42] p-6">
+                        <div className="bg-white p-10 rounded-[40px] w-full max-w-sm shadow-2xl">
+                            <h2 className="text-3xl font-black text-[#172B4D] mb-8 italic text-center tracking-tighter uppercase">RASG HUB</h2>
+                            <div className="flex bg-[#F4F5F7] p-1 rounded-2xl mb-8">
+                                <button onClick={()=>setAuthTab('login')} className={`flex-1 py-3 rounded-xl text-xs font-black ${authTab==='login'?'bg-white shadow text-[#0052CC]':'text-slate-400'}`}>GİRİŞ</button>
+                                <button onClick={()=>setAuthTab('register')} className={`flex-1 py-3 rounded-xl text-xs font-black ${authTab==='register'?'bg-white shadow text-[#0052CC]':'text-slate-400'}`}>KAYIT</button>
+                                <button onClick={()=>setAuthTab('admin')} className={`flex-1 py-3 rounded-xl text-xs font-black ${authTab==='admin'?'bg-white shadow text-red-600':'text-slate-400'}`}>ADMIN</button>
+                            </div>
+                            <form onSubmit={handleAuth} className="space-y-4">
+                                <input name="username" type="text" placeholder={authTab==='admin'?'Admin Kullanıcı':'Kullanıcı Adı'} className="quartz-input" required />
+                                <input name="password" type="password" placeholder="Şifre" className="quartz-input" required />
+                                <button className={`w-full py-4 rounded-2xl font-black text-white shadow-xl transition uppercase tracking-widest ${authTab==='admin'?'bg-red-600':'bg-[#0052CC]'}`}>{authTab === 'register' ? 'HESAP OLUŞTUR' : 'SİSTEME BAĞLAN'}</button>
                             </form>
                         </div>
                     </div>
                 );
             }
 
+            // --- RENDER ADMIN ---
+            if (isAdminMode) {
+                return (
+                    <div className="h-screen flex bg-[#F4F5F7]">
+                        <aside className="w-72 bg-white border-r border-[#DFE1E6] p-8 flex flex-col shadow-sm">
+                            <h1 className="text-2xl font-black text-red-600 mb-12 italic uppercase">ADMIN PORTAL</h1>
+                            <button onClick={async()=>{const n=prompt("Ekip Adı?"); if(n) await supabase.from('teams').insert([{name:n}]); fetchAdminData();}} className="w-full bg-[#0052CC] text-white p-4 rounded-2xl font-black text-xs uppercase mb-4 shadow-lg">+ YENİ EKİP EKLE</button>
+                            <button onClick={()=>location.reload()} className="mt-auto p-4 bg-slate-100 rounded-2xl font-bold text-xs text-slate-500 hover:text-red-600 transition uppercase">GÜVENLİ ÇIKIŞ</button>
+                        </aside>
+                        <main className="flex-1 p-12 overflow-y-auto">
+                            <h2 className="text-3xl font-black mb-10 tracking-tighter">Kullanıcı & Ekip Yönetimi</h2>
+                            <div className="bg-white rounded-[32px] border border-[#DFE1E6] overflow-hidden shadow-xl">
+                                <table className="w-full text-left font-medium">
+                                    <thead className="bg-[#FAFBFC] border-b text-[10px] font-black text-slate-400 uppercase tracking-widest"><tr><th className="p-6">KULLANICI</th><th className="p-6">EKİBİ</th><th className="p-6">YÖNET</th><th className="p-6">SİL</th></tr></thead>
+                                    <tbody className="divide-y divide-[#EBECF0]">
+                                        {allUsers.filter(u=>!u.is_admin).map(u => (
+                                            <tr key={u.id} className="hover:bg-[#F4F5F7] transition-all">
+                                                <td className="p-6 font-bold text-[#172B4D]">{u.username}</td>
+                                                <td className="p-6"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.teams?'bg-[#E3FCEF] text-[#006644]':'bg-slate-100 text-slate-400'}`}>{u.teams?.name || 'EKİPSİZ'}</span></td>
+                                                <td className="p-6">
+                                                    <select onChange={e=> { supabase.from('profiles').update({ team_id: e.target.value }).eq('id', u.id).then(fetchAdminData); }} value={u.team_id || ""} className="p-2 border rounded-xl text-[10px] font-bold outline-none">
+                                                        <option value="">Ekip Seç...</option>
+                                                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                    </select>
+                                                </td>
+                                                <td className="p-6"><button onClick={async()=>{if(confirm("Sil?")){await supabase.from('profiles').delete().eq('id', u.id); fetchAdminData();}}} className="text-red-500"><i className="fas fa-trash-alt"></i></button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </main>
+                    </div>
+                );
+            }
+
+            // --- RENDER HUB (PROJECT AREA) ---
             return (
                 <div className="h-screen flex flex-col">
-                    {/* GLOBAL HEADER */}
-                    <header className="p-4 bg-white border-b border-[#DCDFE4] flex flex-wrap justify-between items-center z-50 shadow-sm">
+                    <header className="p-4 bg-white border-b border-[#DCDFE4] flex flex-wrap justify-between items-center z-50">
                         <div className="flex items-center gap-8">
                             <h1 className="font-black italic text-lg text-[#172B4D]">RASG 2026</h1>
                             <div className="flex gap-5 text-[11px] font-bold uppercase tracking-widest text-[#5E6C84]">
@@ -167,137 +250,151 @@
                             </div>
                         </div>
                         <div className="flex gap-3 items-center">
-                            {currentView !== 'quick_tasks' && (
-                                <div className="group relative">
-                                    <button className="bg-[#EBECF0] text-[9px] font-black p-2 px-4 rounded-full uppercase text-[#42526E]">Ekip Filtresi ({filters.assignees.length})</button>
-                                    <div className="hidden group-hover:block absolute top-full left-0 bg-white border border-[#DCDFE4] p-2 rounded-xl w-40 shadow-2xl z-[100]">
-                                        {TEAM.map(u => <label key={u.id} className="flex items-center gap-2 p-2 hover:bg-[#F4F5F7] cursor-pointer text-[10px] font-bold text-[#172B4D]"><input type="checkbox" checked={filters.assignees.includes(u.id)} onChange={() => toggleFilter('assignees', u.id)} /> {u.name}</label>)}
-                                    </div>
-                                </div>
-                            )}
-                            {currentView === 'gantt' && <input type="range" min="15" max="150" value={ganttZoom} onChange={e => setGanttZoom(parseInt(e.target.value))} className="w-20 accent-[#0052CC] mr-4 h-1" />}
-                            <button onClick={()=>addTask(currentView==='quick_tasks')} className="bg-[#0052CC] text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase shadow-md hover:bg-[#0747A6]">+ TASK</button>
-                            <button onClick={() => setIsLoggedIn(false)} className="ml-2 text-[#42526E] hover:text-[#DE350B] transition-all"><i className="fas fa-sign-out-alt text-lg"></i></button>
+                            <div className="text-right mr-4">
+                                <p className="text-xs font-black text-[#172B4D]">{profile?.username}</p>
+                                <p className="text-[9px] font-bold text-[#0052CC] uppercase">{profile?.teams?.name || "ATAMA BEKLENİYOR"}</p>
+                            </div>
+                            <button onClick={logout} className="text-[#DE350B] hover:scale-110 transition-all"><i className="fas fa-power-off text-xl"></i></button>
                         </div>
                     </header>
 
-                    <main className="flex-1 overflow-hidden relative">
-                        {/* 1. BOARD VIEW */}
-                        {currentView === 'board' && (
-                            <div className="flex h-full p-6 gap-6 overflow-x-auto custom-scrollbar">
-                                {columns.map(col => (
-                                    <div key={col.id} className="column-width flex flex-col" onDragOver={e => e.preventDefault()} onDrop={() => draggedTaskId && updateTask(draggedTaskId, { status: col.slug })}>
-                                        <div className="mb-5 flex justify-between items-center px-1 font-black text-[11px] uppercase text-[#5E6C84] tracking-widest opacity-80">
-                                            <span>{col.title}</span><span className="bg-[#EBECF0] px-2 py-0.5 rounded-full">{filteredTasks.filter(t => t.status === col.slug).length}</span>
-                                        </div>
-                                        <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
-                                            {filteredTasks.filter(t => t.status === col.slug).map(task => (
-                                                <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} onClick={() => { setSelectedTask(task); fetchComments(task.id); }} className="p-4 rounded-xl quartz-card cursor-pointer">
-                                                    <div className="flex flex-wrap gap-1 mb-2">{(task.tags || []).map(tag => <span key={tag} className="text-[8px] bg-[#DEEBFF] text-[#0052CC] px-2 py-0.5 rounded font-black uppercase">{tag}</span>)}</div>
-                                                    <p className="text-[14px] font-semibold text-[#172B4D] leading-relaxed">{task.text}</p>
-                                                    <div className="flex justify-between items-center mt-5 pt-3 border-t border-[#EBECF0]">
-                                                        <div className="flex -space-x-1.5">{(task.assignee || []).map(id => <div key={id} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-black text-white ${TEAM.find(x => x.id === id)?.color}`}>{id}</div>)}</div>
-                                                        <span className="text-[10px] font-bold text-[#5E6C84]">{task.end_date}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <button onClick={() => addTask(false, null, col.slug)} className="w-full py-3 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] uppercase transition-all">+ EKLE</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* 2. HIZLI İŞLER (QUICK TASKS) */}
-                        {currentView === 'quick_tasks' && (
-                            <div className="h-full flex flex-col p-6 overflow-hidden">
-                                <div className="flex-1 flex gap-6 overflow-x-auto custom-scrollbar">
-                                    {TEAM.map(member => (
-                                        <div key={member.id} className="column-width flex flex-col bg-[#EBECF0]/40 rounded-[24px] border border-[#DFE1E6] p-5" onDragOver={e => e.preventDefault()} onDrop={() => draggedTaskId && updateTask(draggedTaskId, { assignee: [member.id] })}>
-                                            <div className="flex items-center gap-3 mb-6 px-1"><div className={`w-9 h-9 rounded-full ${member.color} flex items-center justify-center text-[11px] font-black text-white shadow-lg`}>{member.id}</div><span className="font-black text-sm text-[#172B4D] tracking-tight">{member.name.toUpperCase()}</span></div>
-                                            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                                                {filteredTasks.filter(t => (t.assignee || []).includes(member.id)).map(task => (
-                                                    <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} className={`p-4 rounded-xl bg-white border border-[#DFE1E6] shadow-sm transition-all ${task.is_completed ? 'task-completed' : 'hover:border-[#0052CC]'}`}>
-                                                        <div className="flex items-start gap-3">
-                                                            <input type="checkbox" checked={task.is_completed} onChange={e => updateTask(task.id, { is_completed: e.target.checked })} className="mt-1 w-4 h-4 rounded-full accent-[#36B37E] cursor-pointer" />
-                                                            <div className="flex-1" onClick={() => { setSelectedTask(task); fetchComments(task.id); }}><p className="text-[14px] font-bold text-[#172B4D]">{task.text}</p></div>
+                    <main className="flex-1 overflow-hidden relative bg-[#F4F5F7]">
+                        {!profile?.team_id ? (
+                            <div className="h-full flex items-center justify-center p-20"><div className="bg-white p-12 rounded-[40px] shadow-2xl border text-center max-w-sm"><i className="fas fa-user-shield text-5xl text-blue-600 mb-6 opacity-30"></i><h2 className="text-2xl font-black">Erişim Bekleniyor</h2><p className="text-slate-400 mt-4 font-medium">Hesabınız onaylandı. Admin'in sizi bir ekibe atamasını bekleyin.</p></div></div>
+                        ) : (
+                            <div className="h-full flex flex-col p-8 overflow-hidden">
+                                {currentView === 'board' && (
+                                    <div className="flex-1 flex gap-6 overflow-x-auto custom-scrollbar">
+                                        {columns.map(col => (
+                                            <div key={col.id} className="column-width flex flex-col" onDragOver={e => e.preventDefault()} onDrop={async () => { if(draggedTaskId) { await supabase.from('tasks').update({ status: col.slug }).eq('id', draggedTaskId); fetchData(profile.team_id); setDraggedTaskId(null); } }}>
+                                                <div className="mb-4 font-black text-[11px] uppercase text-[#5E6C84] opacity-50 flex justify-between px-2"><span>{col.title}</span><span>{filteredTasks.filter(t=>t.status===col.slug).length}</span></div>
+                                                <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                                                    {filteredTasks.filter(t=>t.status===col.slug).map(task => (
+                                                        <div key={task.id} draggable onDragStart={()=>setDraggedTaskId(task.id)} onClick={()=>setSelectedTask(task)} className="p-5 quartz-card group hover:border-[#0052CC] transition-all cursor-grab active:cursor-grabbing">
+                                                            <p className="text-[14px] font-bold text-[#172B4D] leading-relaxed">{task.text}</p>
                                                         </div>
+                                                    ))}
+                                                    <button onClick={()=>addTask(false,null,col.slug)} className="w-full py-3 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] transition-all uppercase">+ EKLE</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button onClick={async()=>{const t=prompt("Sütun?"); if(t) await supabase.from('columns').insert([{title:t, slug: t.toLowerCase().replace(/ /g,'_'), team_id: profile.team_id}]); fetchData(profile.team_id);}} className="column-width border-2 border-dashed border-[#DFE1E6] rounded-[32px] text-[10px] font-black text-slate-300 hover:text-[#0052CC] transition uppercase tracking-widest">SÜTUN EKLE</button>
+                                    </div>
+                                )}
+                                {currentView === 'quick_tasks' && (
+                                    <div className="flex-1 flex gap-6 overflow-x-auto custom-scrollbar">
+                                        {TEAM_INITIALS.map(initial => (
+                                            <div key={initial} className="column-width flex flex-col bg-white/40 rounded-[32px] border border-[#DFE1E6] p-6 shadow-inner" onDragOver={e => e.preventDefault()} onDrop={async () => { if(draggedTaskId) { await supabase.from('tasks').update({ assignee: [initial] }).eq('id', draggedTaskId); fetchData(profile.team_id); setDraggedTaskId(null); } }}>
+                                                <div className="flex items-center gap-3 mb-8 px-1"><div className="w-10 h-10 rounded-full bg-[#0052CC] flex items-center justify-center text-[12px] font-black text-white shadow-lg">{initial}</div><span className="font-black text-sm text-[#172B4D]">{initial === 'RASG' ? 'RASG GLOBAL' : initial + ' ÇALIŞMA ALANI'}</span></div>
+                                                <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                                                    {filteredTasks.filter(t => (t.assignee || []).includes(initial)).map(task => (
+                                                        <div key={task.id} draggable onDragStart={()=>setDraggedTaskId(task.id)} className={`p-4 rounded-xl bg-white border border-[#DFE1E6] shadow-sm transition-all ${task.is_completed ? 'task-completed' : 'hover:border-[#0052CC]'}`}>
+                                                            <div className="flex items-start gap-3">
+                                                                <input type="checkbox" checked={task.is_completed} onChange={e => updateTask(task.id, { is_completed: e.target.checked })} className="mt-1 w-4 h-4 rounded-full accent-[#36B37E] cursor-pointer" />
+                                                                <div className="flex-1" onClick={() => setSelectedTask(task)}><p className="text-[14px] font-bold text-[#172B4D]">{task.text}</p></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => addTask(true, initial)} className="w-full py-4 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] transition uppercase">+ HIZLI İŞ EKLE</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {currentView === 'gantt' && (
+                                    <div className="gantt-container h-full rounded-[24px] border border-[#DCDFE4] shadow-xl overflow-hidden">
+                                        <div className="gantt-main-scroll custom-scrollbar" ref={ganttScrollRef}>
+                                            <div className="gantt-timeline-header flex sticky top-0 z-30">
+                                                <div className="gantt-sidebar p-4 text-[10px]">GÖREV LİSTESİ</div>
+                                                {ganttDays.map((date, i) => (
+                                                    <div key={i} className={`day-cell p-2 flex flex-col items-center ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''}`} style={{ width: ganttZoom, minWidth: ganttZoom }}>
+                                                        <span className="text-[8px] font-bold text-[#5E6C84] uppercase">{date.toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                                                        <span className={`text-[12px] font-black ${new Date().toDateString() === date.toDateString() ? 'text-[#0052CC]' : ''}`}>{date.getDate()}</span>
                                                     </div>
                                                 ))}
-                                                <button onClick={() => addTask(true, member.id)} className="w-full py-4 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] transition uppercase tracking-widest">+ HIZLI İŞ EKLE</button>
+                                            </div>
+                                            {filteredTasks.map(task => {
+                                                const s = task.start_date ? new Date(task.start_date) : null;
+                                                const e = task.end_date ? new Date(task.end_date) : null;
+                                                let l = 0, w = 0;
+                                                if(s && e) {
+                                                    l = Math.ceil((s - ganttStartDate) / (1000 * 60 * 60 * 24)) * ganttZoom;
+                                                    w = (Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1) * ganttZoom;
+                                                }
+                                                return (
+                                                    <div key={task.id} className="gantt-grid-row flex">
+                                                        <div className="gantt-sidebar p-3 truncate text-[12px] font-bold text-[#172B4D] border-r">{task.text}</div>
+                                                        <div className="flex-1 flex relative h-full min-w-max">
+                                                            {ganttDays.map((_, i) => <div key={i} className="day-cell h-full border-r border-black/[0.03]" style={{ width: ganttZoom, minWidth: ganttZoom }}></div>)}
+                                                            {w > 0 && <div onClick={()=>setSelectedTask(task)} className="absolute top-2 h-7 bg-[#0052CC] rounded-md shadow-lg flex items-center px-3 cursor-pointer z-20" style={{ left: l, width: w }}><span className="text-[9px] text-white font-black truncate">{task.text}</span></div>}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                                {currentView === 'sprints' && (
+                                    <div className="h-full flex flex-col">
+                                        <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-[24px] border shadow-sm">
+                                            <div className="flex gap-4 items-center">
+                                                <select className="quartz-input w-64 text-xs font-black uppercase" value={activeSprintId || ""} onChange={e => setActiveSprintId(e.target.value)}>
+                                                    {sprints.map(s => <option key={s.id} value={s.id}>{s.name} ({s.start_date} / {s.end_date})</option>)}
+                                                </select>
+                                                <button onClick={autoGenerateSprints} className="bg-[#DEEBFF] text-[#0052CC] text-[10px] font-black px-5 py-2.5 rounded-xl border-2 border-[#B3D4FF] hover:bg-[#0052CC] hover:text-white transition uppercase tracking-tighter">+ OTOMATİK SPRINT</button>
+                                            </div>
+                                            <button onClick={async()=>{if(confirm("Tümünü Sil?")){await supabase.from('sprints').delete().eq('team_id', profile.team_id); fetchData(profile.team_id);}}} className="text-[#DE350B] text-[10px] font-black uppercase tracking-widest bg-[#FFEBE6] px-5 py-2.5 border-2 border-[#FFBDAD] rounded-xl hover:bg-[#DE350B] hover:text-white transition">SIFIRLA</button>
+                                        </div>
+                                        <div className="flex-1 flex gap-8 overflow-hidden">
+                                            <div className="flex-1 bg-[#EBECF0]/40 rounded-[40px] p-8 border border-[#DFE1E6] flex flex-col shadow-inner">
+                                                <h3 className="text-xs font-black uppercase mb-6 text-[#5E6C84] tracking-[0.2em] italic">Backlog (İş Havuzu)</h3>
+                                                <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                                                    {filteredTasks.filter(t => !t.sprint_id).map(task => (
+                                                        <div key={task.id} className="p-5 rounded-[20px] bg-white border shadow-sm flex justify-between items-center hover:border-[#0052CC] transition">
+                                                            <span className="text-sm font-bold text-[#172B4D]">{task.text}</span>
+                                                            <button onClick={() => updateTask(task.id, { sprint_id: activeSprintId })} className="bg-[#0052CC] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Ekle</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 bg-white rounded-[40px] p-8 border-2 border-[#DEEBFF] flex flex-col shadow-2xl relative">
+                                                <h3 className="text-xs font-black uppercase mb-6 text-[#0052CC] tracking-[0.2em] italic">Aktif Sprint Görevleri</h3>
+                                                <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                                                    {filteredTasks.filter(t => t.sprint_id == activeSprintId).map(task => (
+                                                        <div key={task.id} className="p-5 rounded-[20px] bg-white border-2 border-[#B3D4FF] flex justify-between items-center shadow-md">
+                                                            <span className="text-sm font-bold text-[#0052CC]">{task.text}</span>
+                                                            <button onClick={() => updateTask(task.id, { sprint_id: null })} className="text-[#DE350B] text-[10px] font-black uppercase hover:underline">Geri Al</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 3. GANTT VIEW */}
-                        {currentView === 'gantt' && (
-                            <div className="gantt-container h-full">
-                                <div className="gantt-main-scroll custom-scrollbar" ref={ganttScrollRef}>
-                                    <div className="gantt-timeline-header flex sticky top-0 z-30 shadow-sm">
-                                        <div className="gantt-sidebar p-4 font-black text-[11px] uppercase border-r border-[#DCDFE4]">PROJE GÖREVLERİ</div>
-                                        {ganttDays.map((date, i) => {
-                                            const isToday = new Date().toDateString() === date.toDateString();
-                                            return (
-                                                <div key={i} className={`day-cell p-2 flex flex-col items-center ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''}`} style={{ width: ganttZoom, minWidth: ganttZoom }}>
-                                                    <span className="text-[8px] uppercase font-bold text-[#5E6C84]">{date.toLocaleDateString('tr-TR', { month: 'short' })}</span>
-                                                    <span className={`text-[12px] font-black ${isToday ? 'text-[#0052CC]' : 'text-[#172B4D]'}`}>{date.getDate()}</span>
-                                                </div>
-                                            );
-                                        })}
                                     </div>
-                                    {filteredTasks.map(task => {
-                                        const start = task.start_date ? new Date(task.start_date) : null;
-                                        const end = task.end_date ? new Date(task.end_date) : null;
-                                        let left = 0, width = 0;
-                                        if(start && end) {
-                                            left = Math.ceil((start - ganttStartDate) / (1000 * 60 * 60 * 24)) * ganttZoom;
-                                            width = (Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1) * ganttZoom;
-                                        }
-                                        return (
-                                            <div key={task.id} className="gantt-grid-row flex group hover:bg-[#F4F5F7]">
-                                                <div className="gantt-sidebar p-3 truncate text-[12px] font-bold text-[#172B4D] border-r border-[#DCDFE4]">{task.text}</div>
-                                                <div className="flex-1 flex relative h-full min-w-max">
-                                                    {ganttDays.map((_, i) => <div key={i} className="day-cell h-full border-r border-black/[0.03]" style={{ width: ganttZoom, minWidth: ganttZoom }}></div>)}
-                                                    {width > 0 && <div onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className={`absolute top-2.5 h-7 rounded-md cursor-pointer shadow-md flex items-center px-3 z-20 ${TEAM.find(m => (task.assignee || []).includes(m.id))?.color || 'bg-slate-400'}`} style={{ left, width }}><span className="text-[10px] text-white font-black truncate">{task.text}</span></div>}
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
+                                )}
                             </div>
                         )}
-                        {/* List ve Sprints sekmeleri arka planda filtreleme ile senkronizedir. */}
                     </main>
 
                     {/* SHARED MODAL */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
-                            <div className="bg-white w-full max-w-xl h-full shadow-2xl p-10 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-200">
-                                <div className="flex justify-between items-center mb-8">
-                                    <span className="text-[11px] font-black text-[#0052CC] uppercase tracking-widest italic opacity-60">GÖREV AYRINTILARI</span>
-                                    <div className="flex gap-4">
-                                        <button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchData();}}} className="text-[#DE350B] hover:scale-110 transition-all"><i className="fas fa-trash-alt text-xl"></i></button>
-                                        <button onClick={()=>setSelectedTask(null)} className="text-[#42526E] hover:text-black transition-all"><i className="fas fa-times text-2xl"></i></button>
+                            <div className="bg-white w-full max-w-xl h-full shadow-2xl p-12 flex flex-col overflow-y-auto animate-in slide-in-from-right">
+                                <div className="flex justify-between items-center mb-10 text-[#0052CC]">
+                                    <span className="text-[11px] font-black uppercase tracking-[0.3em] opacity-40 italic">İŞ AYRINTILARI</span>
+                                    <div className="flex gap-6 items-center">
+                                        <button onClick={async()=>{if(confirm("Silin?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchData(profile.team_id);}}} className="text-[#DE350B] hover:scale-125 transition-all"><i className="fas fa-trash-alt text-2xl"></i></button>
+                                        <button onClick={()=>setSelectedTask(null)} className="text-[#42526E] hover:text-black transition-all"><i className="fas fa-times text-3xl"></i></button>
                                     </div>
                                 </div>
-                                <textarea className="text-3xl font-black bg-transparent border-b-2 border-[#EBECF0] outline-none w-full mb-10 pb-2 text-[#172B4D] focus:border-[#4C9AFF] transition-colors" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
-                                <div className="space-y-10">
-                                    <div className="grid grid-cols-2 gap-8">
-                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="quartz-input w-full font-bold text-sm" /></div>
-                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="quartz-input w-full font-bold text-sm" /></div>
+                                <textarea className="text-3xl font-black bg-transparent border-b-2 border-[#EBECF0] outline-none w-full mb-12 pb-4 text-[#172B4D] focus:border-[#4C9AFF]" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
+                                <div className="space-y-12">
+                                    <div className="grid grid-cols-2 gap-10">
+                                        <div><label className="text-[11px] font-black text-[#5E6C84] uppercase block mb-4 tracking-widest ml-1">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="quartz-input w-full font-bold" /></div>
+                                        <div><label className="text-[11px] font-black text-[#5E6C84] uppercase block mb-4 tracking-widest ml-1">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="quartz-input w-full font-bold" /></div>
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-4 tracking-widest">Sorumlu Ekip Üyeleri</label>
-                                        <div className="flex gap-3">
-                                            {TEAM.map(u=><button key={u.id} onClick={()=>{const cur=selectedTask.assignee||[]; const next=cur.includes(u.id)?cur.filter(x=>x!==u.id):[...cur,u.id]; updateTask(selectedTask.id,{assignee:next});}} className={`px-5 py-2.5 rounded-xl text-[11px] font-black border-2 transition-all ${selectedTask.assignee?.includes(u.id)?`${u.color} border-transparent text-white shadow-lg`:'border-[#DFE1E6] text-[#42526E] hover:bg-[#F4F5F7]'}`}>{u.id}</button>)}
-                                        </div>
-                                    </div>
-                                    <div className="pt-10 border-t border-[#EBECF0]">
-                                        <button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#0747A6] transition-all">DEĞİŞİKLİKLERİ KAYDET VE KAPAT</button>
-                                    </div>
+                                    <div><label className="text-[11px] font-black text-[#5E6C84] uppercase block mb-5 tracking-widest ml-1">ÖNEM DERECESİ</label><div className="flex gap-3">{IMPORTANCE_LEVELS.map(l => <button key={l} onClick={()=>updateTask(selectedTask.id,{importance:l})} className={`px-5 py-2.5 rounded-xl text-[11px] font-black border-2 transition-all ${selectedTask.importance===l?'bg-orange-600 border-transparent text-white shadow-lg':'border-[#DFE1E6] text-[#42526E] hover:bg-[#F4F5F7]'}`}>{l}</button>)}</div></div>
+                                    <div><label className="text-[11px] font-black text-[#5E6C84] uppercase block mb-5 tracking-widest ml-1">SORUMLU ÜYELER</label><div className="flex gap-3">{TEAM_INITIALS.map(u => <button key={u} onClick={()=>{const cur=selectedTask.assignee||[]; const n=cur.includes(u)?cur.filter(x=>x!==u):[...cur,u]; updateTask(selectedTask.id,{assignee:n});}} className={`px-6 py-2.5 rounded-xl text-[11px] font-black border-2 transition-all ${selectedTask.assignee?.includes(u)?'bg-[#0052CC] border-transparent text-white shadow-lg':'border-[#DFE1E6] text-[#42526E] hover:bg-[#F4F5F7]'}`}>{u}</button>)}</div></div>
+                                    <div className="pt-12 border-t-2 border-[#EBECF0]"><button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-6 rounded-[24px] font-black uppercase text-xs tracking-[0.2em] shadow-2xl hover:bg-[#0747A6] transition-all">DEĞİŞİKLİKLERİ KAYDET VE KAPAT</button></div>
                                 </div>
                             </div>
                         </div>
