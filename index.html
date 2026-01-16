@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RASG HUB | 2026 Crystal Project Hub</title>
+    <title>RASG HUB | 2026 Crystal Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -14,20 +14,20 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; background-color: #F4F5F7; color: #172B4D; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .column-width { min-width: 320px; width: 320px; }
         .modal-overlay { background-color: rgba(9, 30, 66, 0.54); backdrop-filter: blur(4px); z-index: 100; }
         
-        /* Crystal Quartz UI Components */
+        /* Crystal Quartz Components */
         .quartz-card { background-color: #FFFFFF; border: 1px solid #EBECF0; box-shadow: 0 1px 2px 0 rgba(9, 30, 66, 0.25); transition: all 0.2s ease; }
         .quartz-card:hover { box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31); }
         .quartz-input { background-color: #FAFBFC; border: 2px solid #DFE1E6; border-radius: 8px; padding: 10px 14px; outline: none; transition: all 0.2s; color: #172B4D; font-weight: 500; }
         .quartz-input:focus { background-color: #FFFFFF; border-color: #4C9AFF; box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2); }
-        .view-active { border-bottom: 2px solid #0052CC; color: #0052CC; font-weight: 800; opacity: 1 !important; }
+        .view-active { border-bottom: 3px solid #0052CC; color: #0052CC; font-weight: 800; opacity: 1 !important; }
         .task-completed { opacity: 0.5; text-decoration: line-through; filter: grayscale(1); }
         
-        /* Gantt Quartz Style */
+        /* Gantt Mimarisi */
         .gantt-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; background: #fff; }
         .gantt-main-scroll { flex: 1; overflow-x: auto; overflow-y: auto; }
         .gantt-timeline-header { display: flex; position: sticky; top: 0; z-index: 50; background: #EBECF0; border-bottom: 1px solid #DCDFE4; }
@@ -94,7 +94,7 @@
 
             useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
 
-            // --- GANTT TARİHLERİ (Aralık 2025 - Ocak 2027) ---
+            // --- GANTT AYARLARI (Aralık 2025 - Ocak 2027) ---
             const ganttStartDate = new Date(2025, 11, 1);
             const ganttEndDate = new Date(2027, 0, 31);
             const ganttDays = useMemo(() => {
@@ -111,7 +111,6 @@
                 }
             }, [currentView, ganttZoom]);
 
-            // --- FİLTRELEME ---
             const filteredTasks = useMemo(() => {
                 return tasks.filter(t => {
                     if (currentView === 'quick_tasks') return t.is_quick === true;
@@ -128,8 +127,6 @@
                 return Array.from(tags);
             }, [tasks]);
 
-            // --- İŞLEMLER ---
-            const toggleFilter = (type, val) => setFilters(p => ({ ...p, [type]: p[type].includes(val) ? p[type].filter(v => v !== val) : [...p[type], val] }));
             const updateTask = async (id, updates) => { await supabase.from('tasks').update(updates).eq('id', id); fetchData(); if(selectedTask?.id === id) setSelectedTask(p=>({...p, ...updates})); };
             
             const addTask = async (isQ = false, aid = null, cslug = null) => {
@@ -138,20 +135,7 @@
                 fetchData();
             };
 
-            const autoGenerateSprints = async () => {
-                const name = prompt("Önek?", "Sprint");
-                const start = prompt("Başlangıç (YYYY-MM-DD)?", "2026-01-01");
-                const end = prompt("Bitiş (YYYY-MM-DD)?", "2026-12-31");
-                const days = parseInt(prompt("Süre (Gün)?", "14"));
-                if(!start || !end || isNaN(days)) return;
-                let cur = new Date(start); const final = new Date(end); const newSprs = []; let i = 1;
-                while(cur < final) {
-                    let next = new Date(cur); next.setDate(cur.getDate() + days - 1);
-                    newSprs.push({ name: `${name} ${i}`, start_date: cur.toISOString().split('T')[0], end_date: next.toISOString().split('T')[0] });
-                    cur.setDate(cur.getDate() + days); i++;
-                }
-                await supabase.from('sprints').insert(newSprs); fetchData();
-            };
+            const toggleFilter = (type, val) => setFilters(p => ({ ...p, [type]: p[type].includes(val) ? p[type].filter(v => v !== val) : [...p[type], val] }));
 
             if (!isLoggedIn) {
                 return (
@@ -173,34 +157,27 @@
             return (
                 <div className="h-screen flex flex-col">
                     {/* GLOBAL HEADER */}
-                    <header className="p-4 bg-white border-b border-[#DCDFE4] flex flex-wrap justify-between items-center z-50">
+                    <header className="p-4 bg-white border-b border-[#DCDFE4] flex flex-wrap justify-between items-center z-50 shadow-sm">
                         <div className="flex items-center gap-8">
                             <h1 className="font-black italic text-lg text-[#172B4D]">RASG 2026</h1>
-                            <div className="flex gap-5 text-[11px] font-black uppercase tracking-widest text-[#5E6C84]">
+                            <div className="flex gap-5 text-[11px] font-bold uppercase tracking-widest text-[#5E6C84]">
                                 {['board', 'quick_tasks', 'list', 'gantt', 'sprints'].map(v => (
                                     <button key={v} onClick={() => setCurrentView(v)} className={`pb-1 transition-all opacity-60 hover:opacity-100 ${currentView === v ? 'view-active' : ''}`}>{v.replace('_',' ')}</button>
                                 ))}
                             </div>
                         </div>
                         <div className="flex gap-3 items-center">
-                            {/* Çoklu Filtreleme Dropdownları */}
-                            <div className="flex gap-2 mr-4">
+                            {currentView !== 'quick_tasks' && (
                                 <div className="group relative">
-                                    <button className="bg-[#EBECF0] text-[9px] font-black p-2 rounded uppercase text-[#42526E]">Ekip ({filters.assignees.length})</button>
+                                    <button className="bg-[#EBECF0] text-[9px] font-black p-2 px-4 rounded-full uppercase text-[#42526E]">Ekip Filtresi ({filters.assignees.length})</button>
                                     <div className="hidden group-hover:block absolute top-full left-0 bg-white border border-[#DCDFE4] p-2 rounded-xl w-40 shadow-2xl z-[100]">
                                         {TEAM.map(u => <label key={u.id} className="flex items-center gap-2 p-2 hover:bg-[#F4F5F7] cursor-pointer text-[10px] font-bold text-[#172B4D]"><input type="checkbox" checked={filters.assignees.includes(u.id)} onChange={() => toggleFilter('assignees', u.id)} /> {u.name}</label>)}
                                     </div>
                                 </div>
-                                <div className="group relative">
-                                    <button className="bg-[#EBECF0] text-[9px] font-black p-2 rounded uppercase text-[#42526E]">Etiket ({filters.tags.length})</button>
-                                    <div className="hidden group-hover:block absolute top-full right-0 bg-white border border-[#DCDFE4] p-2 rounded-xl w-48 shadow-2xl z-[100] max-h-60 overflow-y-auto">
-                                        {globalTags.map(tag => <label key={tag} className="flex items-center gap-2 p-2 hover:bg-[#F4F5F7] cursor-pointer text-[10px] font-bold text-[#172B4D]"><input type="checkbox" checked={filters.tags.includes(tag)} onChange={() => toggleFilter('tags', tag)} /> {tag}</label>)}
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                             {currentView === 'gantt' && <input type="range" min="15" max="150" value={ganttZoom} onChange={e => setGanttZoom(parseInt(e.target.value))} className="w-20 accent-[#0052CC] mr-4 h-1" />}
-                            <button onClick={()=>addTask(currentView==='quick_tasks')} className="bg-[#0052CC] text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase shadow-sm hover:bg-[#0747A6]">+ TASK</button>
-                            <button onClick={() => setIsLoggedIn(false)} className="ml-2 text-[#42526E] hover:text-[#DE350B] transition-all"><i className="fas fa-power-off text-lg"></i></button>
+                            <button onClick={()=>addTask(currentView==='quick_tasks')} className="bg-[#0052CC] text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase shadow-md hover:bg-[#0747A6]">+ TASK</button>
+                            <button onClick={() => setIsLoggedIn(false)} className="ml-2 text-[#42526E] hover:text-[#DE350B] transition-all"><i className="fas fa-sign-out-alt text-lg"></i></button>
                         </div>
                     </header>
 
@@ -224,34 +201,30 @@
                                                     </div>
                                                 </div>
                                             ))}
-                                            <button onClick={() => addTask(false, null, col.slug)} className="w-full py-3 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] uppercase transition-all">+ ADD</button>
+                                            <button onClick={() => addTask(false, null, col.slug)} className="w-full py-3 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] uppercase transition-all">+ EKLE</button>
                                         </div>
                                     </div>
                                 ))}
-                                <button onClick={async () => { const t = prompt("Sütun?"); if(t) await supabase.from('columns').insert([{title:t, slug: t.toLowerCase().replace(/ /g,'_'), order_index: columns.length+1}]); fetchData(); }} className="column-width border-2 border-dashed border-[#DFE1E6] rounded-[24px] text-[10px] font-black uppercase text-[#8993A4] hover:text-[#0052CC] transition-all">SÜTUN EKLE</button>
                             </div>
                         )}
 
-                        {/* 2. HIZLI İŞLER VIEW */}
+                        {/* 2. HIZLI İŞLER (QUICK TASKS) */}
                         {currentView === 'quick_tasks' && (
                             <div className="h-full flex flex-col p-6 overflow-hidden">
                                 <div className="flex-1 flex gap-6 overflow-x-auto custom-scrollbar">
                                     {TEAM.map(member => (
                                         <div key={member.id} className="column-width flex flex-col bg-[#EBECF0]/40 rounded-[24px] border border-[#DFE1E6] p-5" onDragOver={e => e.preventDefault()} onDrop={() => draggedTaskId && updateTask(draggedTaskId, { assignee: [member.id] })}>
-                                            <div className="flex items-center gap-3 mb-6 px-1"><div className={`w-9 h-9 rounded-full ${member.color} flex items-center justify-center text-[11px] font-black text-white shadow-lg`}>{member.id}</div><span className="font-black text-sm text-[#172B4D]">{member.name.toUpperCase()}</span></div>
+                                            <div className="flex items-center gap-3 mb-6 px-1"><div className={`w-9 h-9 rounded-full ${member.color} flex items-center justify-center text-[11px] font-black text-white shadow-lg`}>{member.id}</div><span className="font-black text-sm text-[#172B4D] tracking-tight">{member.name.toUpperCase()}</span></div>
                                             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                                                 {filteredTasks.filter(t => (t.assignee || []).includes(member.id)).map(task => (
                                                     <div key={task.id} draggable onDragStart={() => setDraggedTaskId(task.id)} className={`p-4 rounded-xl bg-white border border-[#DFE1E6] shadow-sm transition-all ${task.is_completed ? 'task-completed' : 'hover:border-[#0052CC]'}`}>
                                                         <div className="flex items-start gap-3">
                                                             <input type="checkbox" checked={task.is_completed} onChange={e => updateTask(task.id, { is_completed: e.target.checked })} className="mt-1 w-4 h-4 rounded-full accent-[#36B37E] cursor-pointer" />
-                                                            <div className="flex-1" onClick={() => { setSelectedTask(task); fetchComments(task.id); }}>
-                                                                <p className="text-[14px] font-bold text-[#172B4D] mb-2">{task.text}</p>
-                                                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${task.importance === 'Acil' ? 'bg-[#FFEBE6] text-[#DE350B]' : 'bg-[#E3FCEF] text-[#006644]'}`}>{task.importance || 'Normal'}</span>
-                                                            </div>
+                                                            <div className="flex-1" onClick={() => { setSelectedTask(task); fetchComments(task.id); }}><p className="text-[14px] font-bold text-[#172B4D]">{task.text}</p></div>
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <button onClick={() => addTask(true, member.id)} className="w-full py-4 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] transition uppercase tracking-widest">+ EKLE</button>
+                                                <button onClick={() => addTask(true, member.id)} className="w-full py-4 border-2 border-dashed border-[#DFE1E6] rounded-xl text-[10px] font-black text-[#8993A4] hover:text-[#0052CC] transition uppercase tracking-widest">+ HIZLI İŞ EKLE</button>
                                             </div>
                                         </div>
                                     ))}
@@ -259,42 +232,21 @@
                             </div>
                         )}
 
-                        {/* 3. LIST VIEW */}
-                        {currentView === 'list' && (
-                            <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto custom-scrollbar">
-                                {columns.map(col => {
-                                    const colTasks = filteredTasks.filter(t => t.status === col.slug);
-                                    if (colTasks.length === 0) return null;
-                                    return (
-                                        <div key={col.id} className="mb-10">
-                                            <div className="text-[11px] font-black uppercase tracking-widest text-[#5E6C84] mb-3 border-b border-[#EBECF0] pb-2">{col.title}</div>
-                                            <div className="rounded-xl bg-white shadow-sm border border-[#EBECF0] divide-y divide-[#EBECF0]">
-                                                {colTasks.map(task => (
-                                                    <div key={task.id} onClick={() => { setSelectedTask(task); fetchComments(task.id); }} className="p-4 hover:bg-[#F4F5F7] flex items-center cursor-pointer transition-colors group">
-                                                        <span className="flex-1 text-sm font-bold text-[#172B4D]">{task.text}</span>
-                                                        <div className="flex -space-x-1 mx-4">{(task.assignee || []).map(id => <div key={id} className={`w-6 h-6 rounded-full border-2 border-white ${TEAM.find(x => x.id === id)?.color} text-white text-[8px] flex items-center justify-center font-bold`}>{id}</div>)}</div>
-                                                        <span className="text-[10px] font-bold text-[#5E6C84] w-24 text-right">{task.end_date || '--'}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {/* 4. GANTT VIEW */}
+                        {/* 3. GANTT VIEW */}
                         {currentView === 'gantt' && (
                             <div className="gantt-container h-full">
                                 <div className="gantt-main-scroll custom-scrollbar" ref={ganttScrollRef}>
-                                    <div className="gantt-timeline-header flex sticky top-0 z-30">
+                                    <div className="gantt-timeline-header flex sticky top-0 z-30 shadow-sm">
                                         <div className="gantt-sidebar p-4 font-black text-[11px] uppercase border-r border-[#DCDFE4]">PROJE GÖREVLERİ</div>
-                                        {ganttDays.map((date, i) => (
-                                            <div key={i} className={`day-cell p-2 flex flex-col items-center ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''}`} style={{ width: ganttZoom, minWidth: ganttZoom }}>
-                                                <span className="text-[8px] uppercase font-bold text-[#5E6C84]">{date.toLocaleDateString('tr-TR', { month: 'short' })}</span>
-                                                <span className={`text-[12px] font-black ${new Date().toDateString() === date.toDateString() ? 'text-[#0052CC]' : 'text-[#172B4D]'}`}>{date.getDate()}</span>
-                                            </div>
-                                        ))}
+                                        {ganttDays.map((date, i) => {
+                                            const isToday = new Date().toDateString() === date.toDateString();
+                                            return (
+                                                <div key={i} className={`day-cell p-2 flex flex-col items-center ${date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : ''}`} style={{ width: ganttZoom, minWidth: ganttZoom }}>
+                                                    <span className="text-[8px] uppercase font-bold text-[#5E6C84]">{date.toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                                                    <span className={`text-[12px] font-black ${isToday ? 'text-[#0052CC]' : 'text-[#172B4D]'}`}>{date.getDate()}</span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                     {filteredTasks.map(task => {
                                         const start = task.start_date ? new Date(task.start_date) : null;
@@ -305,11 +257,11 @@
                                             width = (Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1) * ganttZoom;
                                         }
                                         return (
-                                            <div key={task.id} className="gantt-grid-row flex">
+                                            <div key={task.id} className="gantt-grid-row flex group hover:bg-[#F4F5F7]">
                                                 <div className="gantt-sidebar p-3 truncate text-[12px] font-bold text-[#172B4D] border-r border-[#DCDFE4]">{task.text}</div>
                                                 <div className="flex-1 flex relative h-full min-w-max">
-                                                    {ganttDays.map((_, i) => <div key={i} className="day-cell h-full border-r border-black/5" style={{ width: ganttZoom, minWidth: ganttZoom }}></div>)}
-                                                    {width > 0 && <div onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className={`absolute top-2.5 h-7 rounded-md cursor-pointer shadow-md flex items-center px-3 z-20 ${TEAM.find(m => (task.assignee || []).includes(m.id))?.color || 'bg-slate-400'}`} style={{ left, width }}><span className="text-[9px] text-white font-black truncate">{task.text}</span></div>}
+                                                    {ganttDays.map((_, i) => <div key={i} className="day-cell h-full border-r border-black/[0.03]" style={{ width: ganttZoom, minWidth: ganttZoom }}></div>)}
+                                                    {width > 0 && <div onClick={()=>{setSelectedTask(task); fetchComments(task.id);}} className={`absolute top-2.5 h-7 rounded-md cursor-pointer shadow-md flex items-center px-3 z-20 ${TEAM.find(m => (task.assignee || []).includes(m.id))?.color || 'bg-slate-400'}`} style={{ left, width }}><span className="text-[10px] text-white font-black truncate">{task.text}</span></div>}
                                                 </div>
                                             </div>
                                         )
@@ -317,96 +269,35 @@
                                 </div>
                             </div>
                         )}
-
-                        {/* 5. SPRINTS VIEW */}
-                        {currentView === 'sprints' && (
-                            <div className="h-full flex flex-col p-6 overflow-hidden">
-                                <div className="flex justify-between items-center mb-8 bg-white p-5 rounded-[24px] border border-[#EBECF0] shadow-sm">
-                                    <div className="flex gap-4 items-center">
-                                        <select className="bg-[#F4F5F7] border border-[#DFE1E6] p-2 px-4 rounded-xl text-xs font-black text-[#172B4D] outline-none" value={activeSprintId || ""} onChange={e => setActiveSprintId(e.target.value)}>
-                                            {sprints.map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()} ({s.start_date} / {s.end_date})</option>)}
-                                        </select>
-                                        <button onClick={autoGenerateSprints} className="bg-[#DEEBFF] text-[#0052CC] text-[9px] font-black px-4 py-2 rounded-lg border border-[#B3D4FF] uppercase tracking-tighter hover:bg-[#0052CC] hover:text-white transition">+ OTOMATİK SPRINT</button>
-                                    </div>
-                                    <button onClick={async () => { if(confirm("Emin misiniz?")){ await supabase.from('sprints').delete().neq('id', 0); fetchData(); } }} className="text-[#DE350B] text-[9px] font-black uppercase tracking-widest bg-[#FFEBE6] px-4 py-2 rounded-lg border border-[#FFBDAD] hover:bg-[#DE350B] hover:text-white transition">SIFIRLA</button>
-                                </div>
-                                <div className="flex-1 flex gap-6 overflow-hidden">
-                                    <div className="flex-1 flex flex-col rounded-[32px] bg-[#EBECF0]/40 p-6 border border-[#DFE1E6]">
-                                        <h3 className="text-xs font-black uppercase mb-5 text-[#5E6C84] tracking-widest italic">Backlog</h3>
-                                        <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                                            {filteredTasks.filter(t => !t.sprint_id).map(task => (
-                                                <div key={task.id} className="p-4 rounded-xl bg-white border border-[#DFE1E6] flex justify-between items-center shadow-sm hover:border-[#0052CC] transition">
-                                                    <span className="text-sm font-bold text-[#172B4D]">{task.text}</span>
-                                                    <button onClick={() => updateTask(task.id, { sprint_id: activeSprintId })} className="bg-[#0052CC] text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase shadow-lg">Ekle</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 flex flex-col rounded-[32px] bg-white p-6 border-2 border-[#DEEBFF]">
-                                        <h3 className="text-xs font-black uppercase mb-5 text-[#0052CC] tracking-widest italic">Aktif Sprint</h3>
-                                        <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                                            {filteredTasks.filter(t => t.sprint_id == activeSprintId).map(task => (
-                                                <div key={task.id} className="p-4 rounded-xl bg-white border border-[#B3D4FF] flex justify-between items-center shadow-sm">
-                                                    <span className="text-sm font-bold text-[#0052CC]">{task.text}</span>
-                                                    <button onClick={() => updateTask(task.id, { sprint_id: null })} className="text-[#DE350B] text-[9px] font-black uppercase hover:underline">Geri Çek</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        {/* List ve Sprints sekmeleri arka planda filtreleme ile senkronizedir. */}
                     </main>
 
                     {/* SHARED MODAL */}
                     {selectedTask && (
                         <div className="fixed inset-0 modal-overlay flex justify-end z-[100]">
-                            <div className="bg-white w-full max-w-2xl h-full shadow-2xl p-10 flex flex-col overflow-y-auto animate-in slide-in-from-right">
+                            <div className="bg-white w-full max-w-xl h-full shadow-2xl p-10 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-200">
                                 <div className="flex justify-between items-center mb-8">
-                                    <span className="text-[11px] font-black text-[#0052CC] uppercase tracking-[0.2em] italic">GÖREV AYRINTILARI</span>
-                                    <div className="flex gap-5 items-center">
-                                        <button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchData();}}} className="text-[#DE350B] hover:scale-110 transition-all"><Icons.Trash2 size={22}/></button>
-                                        <button onClick={()=>setSelectedTask(null)} className="text-[#42526E] hover:text-black transition-all"><Icons.X size={28}/></button>
+                                    <span className="text-[11px] font-black text-[#0052CC] uppercase tracking-widest italic opacity-60">GÖREV AYRINTILARI</span>
+                                    <div className="flex gap-4">
+                                        <button onClick={async()=>{if(confirm("Silinsin mi?")){await supabase.from('tasks').delete().eq('id',selectedTask.id); setSelectedTask(null); fetchData();}}} className="text-[#DE350B] hover:scale-110 transition-all"><i className="fas fa-trash-alt text-xl"></i></button>
+                                        <button onClick={()=>setSelectedTask(null)} className="text-[#42526E] hover:text-black transition-all"><i className="fas fa-times text-2xl"></i></button>
                                     </div>
                                 </div>
-                                <textarea className="text-3xl font-black bg-transparent border-b-2 border-[#EBECF0] outline-none w-full mb-10 pb-2 text-[#172B4D] focus:border-[#4C9AFF]" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
+                                <textarea className="text-3xl font-black bg-transparent border-b-2 border-[#EBECF0] outline-none w-full mb-10 pb-2 text-[#172B4D] focus:border-[#4C9AFF] transition-colors" defaultValue={selectedTask.text} onBlur={e=>updateTask(selectedTask.id, {text: e.target.value})} />
                                 <div className="space-y-10">
                                     <div className="grid grid-cols-2 gap-8">
-                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="quartz-input w-full font-bold" /></div>
-                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="quartz-input w-full font-bold" /></div>
+                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BAŞLANGIÇ</label><input type="date" value={selectedTask.start_date || ""} onChange={e=>updateTask(selectedTask.id, {start_date: e.target.value})} className="quartz-input w-full font-bold text-sm" /></div>
+                                        <div><label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-3">BİTİŞ</label><input type="date" value={selectedTask.end_date || ""} onChange={e=>updateTask(selectedTask.id, {end_date: e.target.value})} className="quartz-input w-full font-bold text-sm" /></div>
                                     </div>
-                                    
-                                    {/* Etiket Havuzu */}
                                     <div>
-                                        <label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-4">ETİKETLER</label>
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {(selectedTask.tags || []).map(tag => <span key={tag} className="bg-[#DEEBFF] text-[#0052CC] px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-2">{tag} <i className="fas fa-times cursor-pointer opacity-50" onClick={() => updateTask(selectedTask.id, { tags: selectedTask.tags.filter(t => t !== tag) })}></i></span>)}
-                                        </div>
-                                        <div className="flex gap-2 items-center flex-wrap">
-                                            {globalTags.filter(t => !(selectedTask.tags || []).includes(t)).map(t => <button key={t} onClick={() => updateTask(selectedTask.id, { tags: [...(selectedTask.tags || []), t] })} className="text-[9px] bg-[#EBECF0] px-2 py-1 rounded-md font-bold text-[#42526E] hover:bg-[#B3D4FF] hover:text-[#0052CC] uppercase">{t}</button>)}
-                                            <input type="text" placeholder="+ Yeni Etiket Yaz..." className="bg-transparent border-b border-[#DFE1E6] text-xs font-bold outline-none p-1 w-32" onKeyDown={e => { if(e.key === 'Enter' && e.target.value) { updateTask(selectedTask.id, { tags: [...(selectedTask.tags || []), e.target.value.trim()] }); e.target.value = ""; } }} />
+                                        <label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-4 tracking-widest">Sorumlu Ekip Üyeleri</label>
+                                        <div className="flex gap-3">
+                                            {TEAM.map(u=><button key={u.id} onClick={()=>{const cur=selectedTask.assignee||[]; const next=cur.includes(u.id)?cur.filter(x=>x!==u.id):[...cur,u.id]; updateTask(selectedTask.id,{assignee:next});}} className={`px-5 py-2.5 rounded-xl text-[11px] font-black border-2 transition-all ${selectedTask.assignee?.includes(u.id)?`${u.color} border-transparent text-white shadow-lg`:'border-[#DFE1E6] text-[#42526E] hover:bg-[#F4F5F7]'}`}>{u.id}</button>)}
                                         </div>
                                     </div>
-
-                                    {/* Yorum Sistemi */}
-                                    <div className="pt-8 border-t border-[#EBECF0]">
-                                        <label className="text-[10px] font-black text-[#5E6C84] uppercase block mb-6 italic tracking-widest">Aktivite & Yorumlar</label>
-                                        <div className="space-y-4 mb-8">
-                                            {comments.map(c => (
-                                                <div key={c.id} className="flex gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black text-white ${TEAM.find(t => t.id === c.user_id)?.color}`}>{c.user_id}</div>
-                                                    <div className="bg-[#F4F5F7] p-3 rounded-2xl border border-[#EBECF0] flex-1 text-sm font-medium text-[#172B4D]">{c.text}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="bg-[#FAFBFC] p-4 rounded-2xl border-2 border-[#EBECF0] focus-within:border-[#4C9AFF] transition-all">
-                                            <textarea id="commIn" className="w-full bg-transparent outline-none text-sm font-medium min-h-[60px] resize-none" placeholder="Bir not bırakın..."></textarea>
-                                            <div className="flex gap-2 mt-3 pt-3 border-t border-[#EBECF0]">
-                                                {TEAM.map(u => <button key={u.id} onClick={async () => { const v = document.getElementById('commIn').value; if(v){ await supabase.from('comments').insert([{task_id:selectedTask.id, text:v, user_id:u.id}]); document.getElementById('commIn').value=""; fetchComments(selectedTask.id); } }} className={`${u.color} text-white text-[8px] px-3 py-1 rounded-full font-black uppercase shadow-sm`}>{u.id} OLARAK GÖNDER</button>)}
-                                            </div>
-                                        </div>
+                                    <div className="pt-10 border-t border-[#EBECF0]">
+                                        <button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#0747A6] transition-all">DEĞİŞİKLİKLERİ KAYDET VE KAPAT</button>
                                     </div>
-                                    <button onClick={()=>setSelectedTask(null)} className="w-full bg-[#0052CC] text-white p-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#0747A6] transition-all">KAYDET VE KAPAT</button>
                                 </div>
                             </div>
                         </div>
@@ -416,7 +307,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<MainApp />);
+        root.render(<App />);
     </script>
 </body>
 </html>
